@@ -1,0 +1,216 @@
+Item,Name,Part number,Description,Quantity,Material
+1,Part 1,,,1,- None -
+2,Part 2,,,1,- None -
+3,Part 5,,,1,- None -
+4,Part 6,,,1,- None -
+5,5203 Shaft,,,6,300 Series Stainless Steel
+6,5203 gearbox,,,6,- None -
+7,Wheel Core,,,4,"Nylon "
+8,Right Slant Plate,,,4,Steel
+9,Roller Pin,,,44,300 Series Stainless Steel
+10,IR,,,88,300 Series Stainless Steel
+11,OR,,,88,300 Series Stainless Steel
+12,Roller,,,44,Silicone Rubber
+13,Roller Shim,,,88,300 Series Stainless Steel
+14,Roller E-Clip,,,44,300 Series Stainless Steel
+15,M4 x 0.7mm (20mm),,,16,Steel Class 12.9
+16,M4 x 0.7mm Locknut,,,16,Stainless Steel
+17,Left Slant Plate,,,4,Steel
+18,1309 Series Sonic Hub (8mm REX Bore) class 1309-0016-4008,1309-0016-4008,https://www.gobilda.com/1309-series-sonic-hub-8mm-rex-bore/,6,Aluminum - 1060
+19,"1121 Series Low-Side U-Channel (9 Hole, 240mm Length) 1121-0009-0240",1121-0009-0240,https://www.gobilda.com/1121-series-low-side-u-channel-9-hole-240mm-length/,2,Aluminum - 1060
+20,1201 Series Quad Block Pattern Mount (43-2) 1201-0043-0002,1201-0043-0002,https://www.gobilda.com/1201-series-quad-block-pattern-mount-43-2/,12,Aluminum - 1060
+21,Part 1,,,4,- None -
+22,1205 Series Dual Block Mount (1-5) - 2 Pack 1205-0001-0005,1205-0001-0005,https://www.gobilda.com/1205-series-dual-block-mount-1-5-2-pack/,4,Aluminum - 6061
+23,Control Hub REV-31-1152,REV-31-1152,http://www.revrobotics.com/rev-31-1152,1,Control Hub Density
+24,"NiMH Battery (12V, 3000mAh, XT30 Connector [MH-FC], 20A Fuse, 12-20) 3100-0012-0020",3100-0012-0020,https://www.gobilda.com/nimh-battery-12v-3000mah-xt30-connector-mh-fc-20a-fuse-12-20/,1,- None -
+25,Part 1,,,1,- None -
+26,Part 1,,,4,- None -
+27,"2106 Series Stainless Steel REX Shaft (8mm Diameter, 264mm Length)",2106-4008-2640,https://www.gobilda.com/2106-series-stainless-steel-rex-shaft-8mm-diameter-264mm-length/,1,300 Series Stainless Steel
+28,Part 1,,,2,- None -
+29,[LS] Pulley HTD5 16T,,,2,- None -
+30,"1120 Series U-Channel (3 Hole, 96mm Length) 1120-0003-0096",1120-0003-0096,https://www.gobilda.com/1120-series-u-channel-3-hole-96mm-length/,2,Aluminum - 1060
+31,Part 1,,,4,- None -
+32,Part 3,,,2,- None -
+33,Part 4,,,2,- None -
+34,"3417 Series 5mm HTD Pitch Set Screw Pinion Timing Belt Pulley (8mm REX Bore, 16 Tooth) 3417-4008-0016",3417-4008-0016,https://www.gobilda.com/3417-series-5mm-htd-pitch-set-screw-pinion-timing-belt-pulley-8mm-rex-bore-16-tooth/,2,Aluminum - 6061
+35,Part 1,,,2,- None -
+36,"1103 Series L-Beam (12 Hole, 96mm Length) - 1103-0012-0096",1103-0012-0096,https://www.gobilda.com/1103-series-l-beam-12-hole-96mm-length-2-pack/,2,Aluminum - 1060
+37,"3412 Series 5mm HTD Pitch Timing Belt (9mm Width, 215mm Pitch Length, 43 Tooth)",3412-0009-0215,https://www.gobilda.com/3412-series-5mm-htd-pitch-timing-belt-9mm-width-215mm-pitch-length-43-tooth/,2,Nitrile
+38,SAR2-30_r,,,16,- None -
+39,SAR2-30_b,,,16,- None -
+40,2800-0004-0008 v4,,,8,- None -
+41,2801-0004-0008 v4,,,8,- None -
+42,OR,,,2,- None -
+43,OR,,,2,- None -
+44,OR,,,2,- None -
+45,IR,,,2,- None -
+46,1805-0043-0001,,,2,- None -
+47,2800-0003-0008 v2,,,2,- None -
+48,1910-0025-0812 v3,,,2,- None -
+49,2801 Series Zinc Plated Steel Washer (4mm ID x 8mm OD) - 250 Pack 2801-0004-0008-250pk,2801-0004-0008,https://www.gobilda.com/2801-series-zinc-plated-steel-washer-4mm-id-x-8mm-od/,4,400 Series Stainless Steel
+50,Part 3,,,1,- None -
+51,Part 2,,,1,- None -
+52,Part 1,,,1,- None -
+53,Part 1,,,1,- None -
+54,Part 2,,,1,- None -
+55,Part 3,,,1,- None -
+56,Part 1,,,1,- None -
+57,Part 1,,,10,- None -
+58,Part 2,,,10,- None -
+59,Quad Block Mount,,,3,- None -
+60,Quad Block Pin,,,6,- None -
+61,8x12 Outer Race,,,6,- None -
+62,8x12 Inner Race,,,6,- None -
+63,3x8 Outer Race,,,24,- None -
+64,3x8 Inner Race,,,24,- None -
+65,A arm,,,6,- None -
+66,A Arm Pin,,,6,- None -
+67,32mm Omni Wheel,,,3,- None -
+68,2815-0002-0008,,,6,- None -
+69,2800-0003-0016,,,6,- None -
+70,Encoder Cover,,,3,- None -
+71,JST + PCB,,,3,- None -
+72,Main Body,,,3,- None -
+73,side plate,,,3,- None -
+74,spring (0°) v5,,,3,- None -
+75,Wheel Adaptor,,,3,- None -
+76,Part 2,,,1,- None -
+77,Part 3,,,1,- None -
+78,Part 1,,,2,- None -
+79,Part 1,,,2,- None -
+80,Part 2,,,2,- None -
+81,Part 3,,,2,- None -
+82,Part 4,,,2,- None -
+83,Part 5,,,2,- None -
+84,Part 1,,,1,- None -
+85,Part 1,,,1,- None -
+86,Part 2,,,1,- None -
+87,Part 1,,,1,- None -
+88,Part 1,,,1,- None -
+89,Botcase,,,12,- None -
+90,Midcase,,,12,- None -
+91,Topcase,,,12,- None -
+92,Spline,,,12,- None -
+93,Top Label,,,12,- None -
+94,Side Label,,,12,- None -
+95,Wire Seal,,,12,- None -
+96,Screw,,,48,- None -
+97,part1,,,2,- None -
+98,1802-0043-0001,,,6,- None -
+99,1108-0040-0001,,,6,- None -
+100,Frame,,,4,Aluminum - 7075
+101,Inner Race,,,4,Carbon Steel
+102,Outer Race,,,4,Carbon Steel
+103,m3 Servo Screw,,,4,Steel Class 8.8
+104,Hub Shaft,,,4,Aluminum - 7075
+105,8mm M4 Screw,,,16,Steel Class 8.8
+106,4mm ID Washer,,,16,Steel
+107,1103-0005-0040,,,6,- None -
+108,part1,,,1,- None -
+109,1504 Series 32mm OD Pattern Spacer (4mm Length) 1504-0032-0040,1504-0032-0040,https://www.gobilda.com/1504-series-32mm-od-pattern-spacer-4mm-length/,10,Aluminum - 1060
+110,"1908 Series Servo Hub (25 Tooth Spline, 32mm Diameter) class 1908-0025-0032",1908-0025-0032,https://www.gobilda.com/1908-series-servo-hub-25-tooth-spline-32mm-diameter/,4,Aluminum - 1060
+111,Part 1,,,4,- None -
+112,Spur gear (25 teeth),,,3,- None -
+113,Spur gear (25 teeth),,,3,- None -
+114,Part 1,,,1,- None -
+115,"1908 Series Servo Hub (25 Tooth Spline, 32mm Diameter) 1908-0025-0032",1908-0025-0032,https://www.gobilda.com/1908-series-servo-hub-25-tooth-spline-32mm-diameter/,3,Aluminum - 1060
+116,2106 Series 8mm REX E-Clip,2106-4008-0320,https://www.gobilda.com/2106-series-stainless-steel-rex-shaft-8mm-diameter-32mm-length/,12,300 Series Stainless Steel
+117,Part 1,,,2,- None -
+118,1910-0025-0816,,,6,- None -
+119,Part 1,,,2,- None -
+120,Part 2,,,2,- None -
+121,Part 3,,,2,- None -
+122,Part 4,,,2,- None -
+123,Part 5,,,2,- None -
+124,Part 6,,,2,- None -
+125,Part 7,,,2,- None -
+126,Part 8,,,2,- None -
+127,Part 9,,,2,- None -
+128,Part 1,,,1,- None -
+129,Part 2,,,1,- None -
+130,Part 3,,,1,- None -
+131,Body,,,2,- None -
+132,Spline,,,2,- None -
+133,"1910 Series Servo Hub-Shaft (25 Tooth Spline, 8mm Shaft Diameter, 16mm Length)",1910-0025-0816,https://www.gobilda.com/1910-series-servo-hub-shaft-25-tooth-spline-8mm-shaft-diameter-16mm-length/,1,Aluminum
+134,part1,,,4,- None -
+135,part1,,,2,- None -
+136,Part 1,,,2,- None -
+137,Part 2,,,2,- None -
+138,EnclosureTopThin_RC_REAL,,,4,- None -
+139,EnclosureBottomThin_RC_REAL,,,2,- None -
+140,2815-0026-0012 v4,,,4,- None -
+141,2815-0026-0012 v4_1,,,4,- None -
+142,2815-0026-0012 v4_2,,,4,- None -
+143,2815-0026-0012 v4_3,,,4,- None -
+144,3117-0032-0016 (EWB) v1,,,4,- None -
+145,3118-0102-0002-V1.0 White Cover v13,,,4,- None -
+146,3x2.54mm Pin Head Right Angle v4,,,4,- None -
+147,3x2.54mm Pin Head Right Angle v4_1,,,4,- None -
+148,Board,,,4,- None -
+149,JST-PH-3POS-VERT v2,,,4,- None -
+150,JST-PH-3POS-VERT v2,,,4,- None -
+151,JST-PH-3POS-VERT v2,,,4,- None -
+152,JST-PH-3POS-VERT v2,,,4,- None -
+153,JST-PH-3POS-VERT v2_1,,,4,- None -
+154,JST-PH-3POS-VERT v2_1,,,4,- None -
+155,JST-PH-3POS-VERT v2_1,,,4,- None -
+156,JST-PH-3POS-VERT v2_1,,,4,- None -
+157,User Library-PLCC-2white v1,,,4,- None -
+158,User Library-PLCC-2white v1 (1),,,4,- None -
+159,User Library-PLCC-2white v1_1,,,4,- None -
+160,User Library-PLCC-2white v1_10,,,4,- None -
+161,User Library-PLCC-2white v1_11,,,4,- None -
+162,User Library-PLCC-2white v1_12,,,4,- None -
+163,User Library-PLCC-2white v1_13,,,4,- None -
+164,User Library-PLCC-2white v1_14,,,4,- None -
+165,User Library-PLCC-2white v1_15,,,4,- None -
+166,User Library-PLCC-2white v1_16,,,4,- None -
+167,User Library-PLCC-2white v1_17,,,4,- None -
+168,User Library-PLCC-2white v1_18,,,4,- None -
+169,User Library-PLCC-2white v1_19,,,4,- None -
+170,User Library-PLCC-2white v1_2,,,4,- None -
+171,User Library-PLCC-2white v1_20,,,4,- None -
+172,User Library-PLCC-2white v1_21,,,4,- None -
+173,User Library-PLCC-2white v1_22,,,4,- None -
+174,User Library-PLCC-2white v1_23,,,4,- None -
+175,User Library-PLCC-2white v1_24,,,4,- None -
+176,User Library-PLCC-2white v1_25,,,4,- None -
+177,User Library-PLCC-2white v1_26,,,4,- None -
+178,User Library-PLCC-2white v1_3,,,4,- None -
+179,User Library-PLCC-2white v1_4,,,4,- None -
+180,User Library-PLCC-2white v1_5,,,4,- None -
+181,User Library-PLCC-2white v1_6,,,4,- None -
+182,User Library-PLCC-2white v1_7,,,4,- None -
+183,User Library-PLCC-2white v1_8,,,4,- None -
+184,User Library-PLCC-2white v1_9,,,4,- None -
+185,Part 1,,,4,- None -
+186,part1,,,1,- None -
+187,part1,,,1,- None -
+188,Part 4,,,1,- None -
+189,Part 1,,,1,- None -
+190,Part 2,,,1,- None -
+191,1516-4008-0560,,,1,- None -
+192,Part 3,,,1,- None -
+193,Spur gear (25 teeth),,,1,- None -
+194,Spur gear (25 teeth),,,1,- None -
+195,Part 1,,,1,- None -
+196,Component16,,,1,- None -
+197,Component17,,,1,- None -
+198,D1 (1),,,1,- None -
+199,IC1 (1),,,1,- None -
+200,IC1 (1),,,1,- None -
+201,IC1 (1),,,1,- None -
+202,IC1 (1),,,1,- None -
+203,IC1 (1),,,1,- None -
+204,IC1 (1),,,1,- None -
+205,IC1 (1),,,1,- None -
+206,IC1 (1),,,1,- None -
+207,IC2,,,1,- None -
+208,JST_S4B_PH_K,,,1,- None -
+209,L1 (1),,,1,- None -
+210,LED1 (1),,,1,- None -
+211,LED1 (1),,,1,- None -
+212,LED1 (1),,,1,- None -
+213,LED1 (1),,,1,- None -
+214,PCB (1),,,1,- None -
+215,"2910 Series Aluminum Clamping Collar (6mm ID x 16mm OD, 8mm Length) 2910-0816-0006",2910-0816-0006,https://www.gobilda.com/2910-series-aluminum-clamping-collar-6mm-id-x-16mm-od-8mm-length/,1,Aluminum - 1060
