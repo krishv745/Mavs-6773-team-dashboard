@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { UserRole } from "@/lib/supabase/types";
+import { ROLE_CACHE_COOKIE } from "@/lib/auth/constants";
 
 // Redirected away from if the visitor is already logged in.
 const PUBLIC_AUTH_PATHS = ["/team/login"];
@@ -26,7 +27,6 @@ const HEARTBEAT_REFRESH_MINUTES = 1;
 // role fresh against the DB via getCurrentProfile() before doing anything
 // sensitive — so a short client-visible cache here only risks a stale
 // redirect for a few minutes, never a permission bypass.
-const ROLE_CACHE_COOKIE = "tt_role_cache";
 const ROLE_CACHE_MINUTES = 20;
 type RoleCache = { role: UserRole | null; mustResetPassword: boolean; ts: number };
 

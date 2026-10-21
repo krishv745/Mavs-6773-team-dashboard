@@ -1,11 +1,11 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clockIn, clockOut } from "@/lib/clock";
-import { PLACEHOLDER_EMAIL_DOMAIN } from "@/lib/auth/constants";
+import { PLACEHOLDER_EMAIL_DOMAIN, ROLE_CACHE_COOKIE } from "@/lib/auth/constants";
 
 export type ActionState = { error?: string } | undefined;
 export type PasswordResetState = { error?: string; info?: string } | undefined;
@@ -82,6 +82,11 @@ export async function setNewPasswordAction(
 
   const admin = createAdminClient();
   await admin.from("users").update({ must_reset_password: false }).eq("id", user.id);
+
+  // The middleware's cached copy still says must_reset_password = true and
+  // would bounce the redirect below straight back here. Path must match the
+  // one the middleware set it with.
+  (await cookies()).delete({ name: ROLE_CACHE_COOKIE, path: "/team" });
 
   redirect("/team/projects");
 }
