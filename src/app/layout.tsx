@@ -14,9 +14,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Tech Titans 25783 | Team App",
+  title: "FRC Max Throttle Mavericks 6773 | Team Management App",
   description:
-    "Task manager, events, parts inventory, and clock log for Tech Titans 25783.",
+    "Task manager, events, parts inventory, and clock log for FRC Max Throttle Mavericks 6773.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

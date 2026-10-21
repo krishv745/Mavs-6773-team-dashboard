@@ -355,7 +355,7 @@ export async function startBomImportFromLinkAction(
   let html: string;
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; TechTitansBot/1.0)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Mavericks6773Bot/1.0)" },
       signal: AbortSignal.timeout(10000),
     });
     html = await res.text();

@@ -2,8 +2,8 @@
 // neighbors and legible on a white card — assigned round-robin on creation
 // (see createProjectAction), editable by staff afterward.
 export const PROJECT_COLOR_PALETTE = [
-  "#981C21", // crimson
-  "#0E173F", // navy
+  "#B87333", // gold
+  "#4B5320", // green
   "#2563EB", // blue
   "#059669", // emerald
   "#D97706", // amber

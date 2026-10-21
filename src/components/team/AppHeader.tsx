@@ -81,9 +81,9 @@ export default function AppHeader({
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link href={homeHref} className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="Tech Titans 25783" width={32} height={32} />
+            <Image src="/logo.png" alt="Max Throttle Mavericks 6773" width={32} height={32} />
             <span className="hidden font-display text-base font-bold text-navy sm:inline">
-              TECH TITANS
+              MAX THROTTLE MAVERICKS
             </span>
           </Link>
           <ThemeToggle />

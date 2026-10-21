@@ -80,7 +80,7 @@ export async function fetchLinkMetadataAction(
   if (!url) return { error: "No link provided." };
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; TechTitansBot/1.0)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Mavericks6773Bot/1.0)" },
       signal: AbortSignal.timeout(6000),
     });
     const html = await res.text();
@@ -123,7 +123,7 @@ export async function backfillPartImagesAction(): Promise<{ checked: number; upd
     if (!part.link) continue;
     try {
       const res = await fetch(part.link, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; TechTitansBot/1.0)" },
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Mavericks6773Bot/1.0)" },
         signal: AbortSignal.timeout(6000),
       });
       const html = await res.text();
@@ -162,7 +162,7 @@ export async function backfillPartCostsAction(): Promise<{ checked: number; upda
     if (!part.link) continue;
     try {
       const res = await fetch(part.link, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; TechTitansBot/1.0)" },
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Mavericks6773Bot/1.0)" },
         signal: AbortSignal.timeout(6000),
       });
       const html = await res.text();

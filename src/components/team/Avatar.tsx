@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-const PALETTE = ["#0e173f", "#981c21", "#7c3aed", "#0f766e", "#b45309", "#1d4ed8", "#a21caf"];
+const PALETTE = ["#4b5320", "#b87333", "#7c3aed", "#0f766e", "#b45309", "#1d4ed8", "#a21caf"];
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);

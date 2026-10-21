@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #0e173f;
-  --color-ink: #09060e;
-  --color-crimson: #981c21;
-  --color-crimson-bright: #dc2626;
-  --color-tint: #f3f6fc;
-  --color-tint-deep: #e6ecf9;
+  /* Mavs Green — primary brand color (was navy). */
+  --color-navy: #4b5320;
+  /* Mavs Black doubles as body text ink in light mode. */
+  --color-ink: #43484d;
+  /* Mavs Gold Accent (was crimson) — CTAs, highlights, active states. */
+  --color-crimson: #b87333;
+  --color-crimson-bright: #cc8a47;
+  --color-tint: #f5f4ef;
+  --color-tint-deep: #ece9de;
 
   /* Card/header surface — distinct from Tailwind's built-in `white` token.
      Everything in the team app that wants an opaque panel on top of the
@@ -45,26 +48,29 @@ body {
  * text-ink, bg-tint/-deep, and hairline-* usage across the whole app for
  * free — no per-component dark: classes needed.
  *
- * --color-navy and --color-crimson are brightened here (not just re-used
- * as-is) because they double as both a solid button/pill background *and*
- * a text/border/ring color on top of a low-opacity tint of themselves
- * (e.g. `bg-navy/10 text-navy` subteam pills, `focus:border-navy`). The
- * brand's light-mode navy/crimson are dark, saturated colors chosen for
- * contrast against white — composited as text over a dark surface they
- * have almost no contrast at all. The values below are picked to stay
- * legible both as text on the dark surface and as a button fill under
- * white text; --color-crimson-bright (hover state) is bumped further so
- * hover remains visibly distinct from the resting crimson.
+ * --color-navy (Mavs Green) and --color-crimson (Mavs Gold) are brightened
+ * here (not just re-used as-is) because they double as both a solid
+ * button/pill background *and* a text/border/ring color on top of a
+ * low-opacity tint of themselves (e.g. `bg-navy/10 text-navy` subteam
+ * pills, `focus:border-navy`). The brand's light-mode green/gold are dark
+ * or mid-toned colors chosen for contrast against white — composited as
+ * text over Mavs Black they'd have too little contrast. The values below
+ * are picked to stay legible both as text on the dark surface and as a
+ * button fill under white text; --color-crimson-bright (hover state) is
+ * bumped further so hover remains visibly distinct from the resting gold.
+ *
+ * --color-tint is exactly Mavs Black (#43484d), the required dark-mode
+ * page background; --color-surface is a step lighter for elevated cards.
  */
 .dark {
   color-scheme: dark;
-  --color-surface: #14161c;
-  --color-ink: #e7e9ee;
-  --color-tint: #1a1d24;
-  --color-tint-deep: #23262f;
-  --color-navy: #4f78d1;
-  --color-crimson: #dc2626;
-  --color-crimson-bright: #ef4444;
+  --color-surface: #4f555c;
+  --color-ink: #e8e9e4;
+  --color-tint: #43484d;
+  --color-tint-deep: #383c40;
+  --color-navy: #8aae4a;
+  --color-crimson: #d9924b;
+  --color-crimson-bright: #e9a868;
   --color-hairline: rgb(255 255 255 / 0.08);
   --color-hairline-strong: rgb(255 255 255 / 0.14);
   --color-hairline-strongest: rgb(255 255 255 / 0.24);
