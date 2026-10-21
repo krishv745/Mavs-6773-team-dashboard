@@ -6,6 +6,7 @@ import { createTaskAction } from "@/lib/tasks/actions";
 import { SUBTEAMS } from "@/lib/subteams";
 import { PRIORITIES } from "@/lib/priority";
 import SubmitButton from "@/components/team/SubmitButton";
+import { MAX_DEADLINE, minDeadline } from "@/lib/deadlines";
 import RichTextField from "@/components/team/RichTextField";
 import MemberSelectionList, { type SelectableMember } from "@/components/team/MemberSelectionList";
 
@@ -136,6 +137,8 @@ export default function AddTaskModal({
                 id="deadline"
                 name="deadline"
                 type="date"
+                min={minDeadline()}
+                max={MAX_DEADLINE}
                 disabled={ongoing}
                 className="mt-1.5 w-full rounded-md border border-hairline-strong px-3 py-2.5 text-sm outline-none focus:border-navy focus:ring-2 focus:ring-navy/10 disabled:bg-tint/60 disabled:text-ink/40"
               />

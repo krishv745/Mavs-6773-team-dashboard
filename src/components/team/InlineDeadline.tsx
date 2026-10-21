@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { formatCalendarDate } from "@/lib/formatTime";
+import { MAX_DEADLINE, deadlineError, minDeadline } from "@/lib/deadlines";
 
 type SaveValue = string | "ongoing" | null;
 
@@ -28,8 +29,29 @@ export default function InlineDeadline({
   emptyLabel?: string;
 }) {
   const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Date inputs fire onChange mid-typing (e.g. year "0002" after one digit)
+  // and on every scroll of a mobile date wheel, so the picked date is only
+  // saved on Enter / Save — never straight from onChange. Typing and the
+  // calendar both feed the same draft; min/max grey out out-of-range days in
+  // the calendar, and deadlineError() catches anything typed outside them.
+  const minDate = minDeadline();
+
+  function saveDraft() {
+    const draftError = deadlineError(draft);
+    if (draftError) {
+      setError(draftError);
+      return;
+    }
+    if (draft === deadline && !ongoing) {
+      setEditing(false);
+      return;
+    }
+    save(draft);
+  }
 
   function save(value: SaveValue) {
     setEditing(false);
@@ -55,13 +77,30 @@ export default function InlineDeadline({
         <input
           type="date"
           autoFocus
-          defaultValue={deadline ?? ""}
-          onChange={(e) => e.currentTarget.value && save(e.currentTarget.value)}
+          value={draft}
+          min={minDate}
+          max={MAX_DEADLINE}
+          onChange={(e) => {
+            setDraft(e.currentTarget.value);
+            setError(null);
+          }}
           onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              saveDraft();
+            }
             if (e.key === "Escape") setEditing(false);
           }}
           className="rounded-md border border-navy/40 bg-surface px-2 py-1 text-xs text-ink outline-none focus:ring-2 focus:ring-navy/10"
         />
+        <button
+          type="button"
+          onClick={saveDraft}
+          disabled={!draft}
+          className="rounded-md bg-crimson px-2 py-1 text-xs font-semibold text-white hover:bg-crimson-bright disabled:opacity-40"
+        >
+          Save
+        </button>
         <button
           type="button"
           onClick={() => save("ongoing")}
@@ -78,6 +117,14 @@ export default function InlineDeadline({
             Clear
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="rounded-md px-1.5 py-1 text-xs font-medium text-ink/40 hover:text-ink/70"
+        >
+          Cancel
+        </button>
+        {error && <span className="text-xs text-crimson">{error}</span>}
       </span>
     );
   }
@@ -89,6 +136,7 @@ export default function InlineDeadline({
         disabled={!editable}
         onClick={() => {
           setError(null);
+          setDraft(deadline ?? "");
           setEditing(true);
         }}
         title={editable ? "Click to edit" : undefined}

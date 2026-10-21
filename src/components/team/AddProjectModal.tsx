@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createProjectAction } from "@/lib/tasks/actions";
 import SubmitButton from "@/components/team/SubmitButton";
+import { MAX_DEADLINE, minDeadline } from "@/lib/deadlines";
 
 export default function AddProjectModal({ variant = "card" }: { variant?: "card" | "button" }) {
   const router = useRouter();
@@ -81,6 +82,8 @@ export default function AddProjectModal({ variant = "card" }: { variant?: "card"
                 id="p-deadline"
                 name="deadline"
                 type="date"
+                min={minDeadline()}
+                max={MAX_DEADLINE}
                 className="mt-1.5 w-full rounded-md border border-hairline-strong px-3 py-2.5 text-sm outline-none focus:border-navy focus:ring-2 focus:ring-navy/10"
               />
             </div>

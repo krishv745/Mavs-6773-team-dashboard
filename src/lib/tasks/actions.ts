@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
 import { getOpenSession } from "@/lib/clock";
 import { formatCalendarDate } from "@/lib/formatTime";
+import { deadlineError } from "@/lib/deadlines";
 import { nextProjectColor, isValidProjectColor } from "@/lib/projectColors";
 import { isSubteam } from "@/lib/subteams";
 import type { ActionState } from "@/lib/auth/actions";
@@ -63,6 +64,7 @@ export async function createProjectAction(
   const name = String(formData.get("name") ?? "").trim();
   const deadline = String(formData.get("deadline") ?? "") || null;
   if (!name) return { error: "Project name is required." };
+  if (deadline && deadlineError(deadline)) return { error: deadlineError(deadline)! };
 
   const admin = createAdminClient();
   const { count } = await admin.from("task_projects").select("id", { count: "exact", head: true });
@@ -181,6 +183,7 @@ export async function createTaskAction(
   if (!projectId || !title || !subteam) {
     return { error: "Task name and subteam are required." };
   }
+  if (deadline && deadlineError(deadline)) return { error: deadlineError(deadline)! };
 
   // Anyone who can approve tasks doesn't need their own submissions
   // approved — everyone else's stay pending until someone with that
@@ -331,6 +334,7 @@ export async function updateTaskFieldAction(
     await admin.from("tasks").update({ deadline: null, ongoing: true }).eq("id", taskId);
   } else {
     const newDeadline = value || null;
+    if (newDeadline && deadlineError(newDeadline)) return { error: deadlineError(newDeadline)! };
     await admin.from("tasks").update({ deadline: newDeadline, ongoing: false }).eq("id", taskId);
     const note =
       !task.deadline && newDeadline
@@ -514,6 +518,7 @@ export async function setTaskProjectDeadlineAction(
   }
 
   const next = deadline || null;
+  if (next && deadlineError(next)) return { error: deadlineError(next)! };
   await admin.from("task_projects").update({ deadline: next, ongoing: false }).eq("id", projectId);
   await admin.from("task_project_deadline_log").insert({
     project_id: projectId,
