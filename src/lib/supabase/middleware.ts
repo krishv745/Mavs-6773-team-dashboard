@@ -44,6 +44,36 @@ function cookieOptions(maxAgeSeconds: number) {
   };
 }
 
+/**
+ * Notice a session gone stale (no request in a while — the tab was almost
+ * certainly closed) and close it out right now instead of waiting for the
+ * nightly cron. Otherwise just refresh the heartbeat. Returns true when it
+ * closed one, i.e. a catch-up log is now pending.
+ */
+async function closeOrRefreshOpenSession(
+  openSession: { id: string; last_seen_at: string } | null,
+  now: number,
+): Promise<boolean> {
+  if (!openSession) return false;
+  const minutesSinceSeen = (now - new Date(openSession.last_seen_at).getTime()) / 60000;
+  const admin = createAdminClient();
+
+  if (minutesSinceSeen > ABANDONED_SESSION_MINUTES) {
+    await admin
+      .from("clock_sessions")
+      .update({ clock_out: new Date().toISOString(), auto_clocked_out: true })
+      .eq("id", openSession.id);
+    return true;
+  }
+  if (minutesSinceSeen > HEARTBEAT_REFRESH_MINUTES) {
+    await admin
+      .from("clock_sessions")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", openSession.id);
+  }
+  return false;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -73,8 +103,15 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isAuthPath = PUBLIC_AUTH_PATHS.some((p) => path.startsWith(p));
   const isRecoveryPath = PASSWORD_RECOVERY_PATHS.some((p) => path.startsWith(p));
+  // Server action calls (adding a log, changing a priority, …) POST to the
+  // current page. A redirect here can't be followed by the action client —
+  // it gets an HTML page back instead of an action result and the whole tab
+  // crashes to "This page couldn't load". Every action re-checks auth
+  // itself, so let them through; the gating redirects below catch up on the
+  // very next navigation instead.
+  const isServerAction = request.headers.has("next-action");
 
-  if (!user && !isAuthPath && !isRecoveryPath) {
+  if (!user && !isAuthPath && !isRecoveryPath && !isServerAction) {
     const url = request.nextUrl.clone();
     url.pathname = "/team/login";
     return NextResponse.redirect(url);
@@ -145,6 +182,16 @@ export async function updateSession(request: NextRequest) {
 
     const homePath = role === "parent" ? "/team/events" : "/team/projects";
 
+    if (isServerAction) {
+      // Still refresh the heartbeat / close an abandoned session — just
+      // never redirect (see isServerAction above).
+      if (sessionCheckDue) {
+        supabaseResponse.cookies.set(SESSION_CHECK_COOKIE, String(now), cookieOptions(HEARTBEAT_REFRESH_MINUTES * 60));
+        await closeOrRefreshOpenSession(openSessionResult?.data ?? null, now);
+      }
+      return supabaseResponse;
+    }
+
     if (isAuthPath) {
       const url = request.nextUrl.clone();
       url.pathname = homePath;
@@ -160,35 +207,17 @@ export async function updateSession(request: NextRequest) {
     if (sessionCheckDue) {
       supabaseResponse.cookies.set(SESSION_CHECK_COOKIE, String(now), cookieOptions(HEARTBEAT_REFRESH_MINUTES * 60));
 
-      // Notice a session gone stale (no request in a while — the tab was
-      // almost certainly closed) and close it out right now, so the very
-      // next check below picks it up immediately instead of waiting for the
-      // nightly cron. Otherwise just refresh the heartbeat.
-      const openSession = openSessionResult?.data;
-      if (openSession) {
-        const minutesSinceSeen = (now - new Date(openSession.last_seen_at).getTime()) / 60000;
-        const admin = createAdminClient();
-
-        if (minutesSinceSeen > ABANDONED_SESSION_MINUTES) {
-          await admin
-            .from("clock_sessions")
-            .update({ clock_out: new Date().toISOString(), auto_clocked_out: true })
-            .eq("id", openSession.id);
-        } else if (minutesSinceSeen > HEARTBEAT_REFRESH_MINUTES) {
-          await admin
-            .from("clock_sessions")
-            .update({ last_seen_at: new Date().toISOString() })
-            .eq("id", openSession.id);
-        }
-      }
+      const justClosed = await closeOrRefreshOpenSession(openSessionResult?.data ?? null, now);
 
       // A session that got force-closed (tab closed without clocking
       // out) with nothing logged against it yet — ask what they worked on
       // before they can go anywhere else, same gating pattern as the forced
-      // password reset above.
+      // password reset above. Includes one this very request just closed,
+      // so the prompt shows on this navigation rather than ambushing the
+      // next click.
       if (!catchUpLogPath) {
         const pendingSession = pendingSessionResult?.data;
-        if (pendingSession) {
+        if (pendingSession || justClosed) {
           const url = request.nextUrl.clone();
           url.pathname = "/team/catch-up-log";
           return NextResponse.redirect(url);
