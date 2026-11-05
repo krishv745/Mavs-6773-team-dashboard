@@ -4,19 +4,17 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clockIn, clockOut } from "@/lib/clock";
 import { PLACEHOLDER_EMAIL_DOMAIN, ROLE_CACHE_COOKIE } from "@/lib/auth/constants";
 
 export type ActionState = { error?: string } | undefined;
 export type PasswordResetState = { error?: string; info?: string } | undefined;
 
-async function signInAndClockIn(email: string, password: string): Promise<ActionState> {
+async function signIn(email: string, password: string): Promise<ActionState> {
   const supabase = await createServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) {
     return { error: "Incorrect username or password." };
   }
-  await clockIn(data.user.id);
   return undefined;
 }
 
@@ -47,7 +45,7 @@ export async function logInAction(
     return { error: "Incorrect username or password." };
   }
 
-  const result = await signInAndClockIn(authUser.user.email, password);
+  const result = await signIn(authUser.user.email, password);
   if (result?.error) return result;
 
   redirect(profile.role === "parent" ? "/team/events" : "/team/projects");
@@ -134,19 +132,9 @@ export async function requestPasswordResetAction(
   return { info: GENERIC_RESET_INFO };
 }
 
-/**
- * The single "end my session" action. If there's an open clock session it
- * gets clocked out; either way the user is fully signed out and sent to the
- * login screen — there's no separate "log out" button in the app.
- */
+/** The app's single "Log Out" action — signs out and returns to the login screen. */
 export async function endSessionAction() {
   const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    await clockOut(user.id);
-  }
   await supabase.auth.signOut();
   redirect("/team/login");
 }

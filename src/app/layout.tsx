@@ -16,7 +16,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: `${APP_NAME} | FRC ${TEAM_NAME}`,
-  description: `${APP_NAME} — task manager, events, parts inventory, and clock log for FRC ${TEAM_NAME}.`,
+  description: `${APP_NAME} — task manager, events, parts inventory, and work logs for FRC ${TEAM_NAME}.`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

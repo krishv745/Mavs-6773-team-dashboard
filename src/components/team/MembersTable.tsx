@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import EditFieldButton from "@/components/team/EditFieldButton";
 import EditPasswordButton from "@/components/team/EditPasswordButton";
@@ -17,12 +16,9 @@ export type MemberRow = {
   phone: string;
   role: UserRole;
   roleId: string | null;
-  hoursThisWeek: string;
-  allTimeHours: string;
-  flagged: boolean;
 };
 
-type ColumnKey = "member" | "username" | "email" | "phone" | "role" | "hoursThisWeek" | "allTimeHours" | "actions";
+type ColumnKey = "member" | "username" | "email" | "phone" | "role" | "actions";
 
 const COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "member", label: "Member" },
@@ -30,8 +26,6 @@ const COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone" },
   { key: "role", label: "Role" },
-  { key: "hoursThisWeek", label: "Hours this week" },
-  { key: "allTimeHours", label: "All-time hours" },
   { key: "actions", label: "Actions" },
 ];
 
@@ -90,7 +84,7 @@ function ColumnsIcon() {
   );
 }
 
-export default function MemberHoursTable({
+export default function MembersTable({
   rows,
   currentUserId,
   isOwner,
@@ -254,8 +248,6 @@ export default function MemberHoursTable({
               {show("email") && <th className="px-4 py-3 font-semibold">Email</th>}
               {show("phone") && <th className="px-4 py-3 font-semibold">Phone</th>}
               {show("role") && <th className="px-4 py-3 font-semibold">Role</th>}
-              {show("hoursThisWeek") && <th className="px-4 py-3 font-semibold">Hours this week</th>}
-              {show("allTimeHours") && <th className="px-4 py-3 font-semibold">All-time hours</th>}
               {show("actions") && <th className="px-4 py-3 font-semibold">Actions</th>}
             </tr>
           </thead>
@@ -272,9 +264,7 @@ export default function MemberHoursTable({
                 {show("member") && (
                   <td className="px-4 py-3 font-medium text-ink">
                     <span className="inline-flex items-center gap-1.5">
-                      <Link href={`/team/admin/members/${u.id}`} className="hover:underline">
-                        {u.name}
-                      </Link>
+                      {u.name}
                       {canManageMembers && (
                         <EditFieldButton userId={u.id} field="name" value={u.name} label="name" />
                       )}
@@ -325,14 +315,6 @@ export default function MemberHoursTable({
                       canGrantOwnerGatedRoles={isOwner}
                     />
                   </td>
-                )}
-                {show("hoursThisWeek") && (
-                  <td className={`px-4 py-3 ${u.flagged && u.role !== "parent" ? "font-semibold text-crimson" : "text-ink/70"}`}>
-                    {u.role === "parent" ? "—" : `${u.hoursThisWeek}h`}
-                  </td>
-                )}
-                {show("allTimeHours") && (
-                  <td className="px-4 py-3 text-ink/70">{u.role === "parent" ? "—" : `${u.allTimeHours}h`}</td>
                 )}
                 {show("actions") && (
                   <td className="px-4 py-3">

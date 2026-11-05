@@ -5,9 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
 import { approveTaskAction, rejectTaskAction } from "@/lib/tasks/actions";
 import { subteamLabel } from "@/lib/subteams";
-import { WEEKLY_MINIMUM_MINUTES, startOfWeek, sessionMinutes } from "@/lib/hours";
 import AddMemberModal from "@/components/team/AddMemberModal";
-import MemberHoursTable, { type MemberRow } from "@/components/team/MemberHoursTable";
+import MembersTable, { type MemberRow } from "@/components/team/MembersTable";
 import RolesPanel from "@/components/team/RolesPanel";
 
 export default async function AdminDashboardPage() {
@@ -22,21 +21,16 @@ export default async function AdminDashboardPage() {
   }
 
   const supabase = await createServerClient();
-  const weekStart = startOfWeek(new Date()).toISOString();
 
   const [
     { data: pendingTasks },
     { data: users },
-    { data: weekSessions },
-    { data: allSessions },
     { data: volunteers },
     { data: customRoles },
     { data: rolePermissionRows },
   ] = await Promise.all([
     supabase.from("tasks").select("*").eq("status", "pending").order("created_at", { ascending: false }),
     supabase.from("users").select("*").order("name", { ascending: true }),
-    supabase.from("clock_sessions").select("user_id, clock_in, clock_out").gte("clock_in", weekStart),
-    supabase.from("clock_sessions").select("user_id, clock_in, clock_out"),
     supabase
       .from("event_volunteers")
       .select("id, name, email, role_id, event_id, status, cancel_reason")
@@ -81,39 +75,20 @@ export default async function AdminDashboardPage() {
     : { data: [] };
   const pendingProjectName = new Map((pendingProjects ?? []).map((p) => [p.id, p.name]));
 
-  // eslint-disable-next-line react-hooks/purity -- server-rendered timestamp for an open session, not a memoized value
-  const now = Date.now();
-  const minutesByUser = new Map<string, number>();
-  for (const s of weekSessions ?? []) {
-    const minutes = sessionMinutes(s.clock_in, s.clock_out, now);
-    minutesByUser.set(s.user_id, (minutesByUser.get(s.user_id) ?? 0) + minutes);
-  }
-  const allTimeMinutesByUser = new Map<string, number>();
-  for (const s of allSessions ?? []) {
-    const minutes = sessionMinutes(s.clock_in, s.clock_out, now);
-    allTimeMinutesByUser.set(s.user_id, (allTimeMinutesByUser.get(s.user_id) ?? 0) + minutes);
-  }
-
   // Email lives on auth.users, not public.users — needs the service-role client.
   const admin = createAdminClient();
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const emailById = new Map(authUsers?.users.map((u) => [u.id, u.email ?? ""]) ?? []);
 
-  const memberRows: MemberRow[] = (users ?? []).map((u) => {
-    const minutes = minutesByUser.get(u.id) ?? 0;
-    return {
-      id: u.id,
-      name: u.name,
-      username: u.username,
-      email: emailById.get(u.id) ?? "",
-      phone: u.phone ?? "",
-      role: u.role,
-      roleId: u.role_id,
-      hoursThisWeek: (minutes / 60).toFixed(1),
-      allTimeHours: ((allTimeMinutesByUser.get(u.id) ?? 0) / 60).toFixed(1),
-      flagged: minutes < WEEKLY_MINIMUM_MINUTES,
-    };
-  });
+  const memberRows: MemberRow[] = (users ?? []).map((u) => ({
+    id: u.id,
+    name: u.name,
+    username: u.username,
+    email: emailById.get(u.id) ?? "",
+    phone: u.phone ?? "",
+    role: u.role,
+    roleId: u.role_id,
+  }));
 
   return (
     <div>
@@ -169,14 +144,12 @@ export default async function AdminDashboardPage() {
         </section>
       )}
 
-      {/* Hour tracking */}
-      {canViewHours && (
+      {/* Members */}
+      {(canViewHours || canManageMembers) && (
         <section className="mt-10">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-ink/40">
-            This week&rsquo;s hours · 6h/week minimum
-          </h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-ink/40">Members</h2>
           <div className="mt-3">
-            <MemberHoursTable
+            <MembersTable
               rows={memberRows}
               currentUserId={profile!.id}
               isOwner={profile?.role === "owner"}

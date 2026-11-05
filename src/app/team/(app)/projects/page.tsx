@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
-import { WEEKLY_MINIMUM_MINUTES, startOfWeek, sessionMinutes } from "@/lib/hours";
 import { PRIORITY_RANK } from "@/lib/priority";
 import { buildBoardData, type BoardSort } from "@/lib/projects/board";
 import AddProjectModal from "@/components/team/AddProjectModal";
@@ -47,20 +46,6 @@ export default async function ProjectsPage({
   const focused = targetProjectId ? sortedProjects.find((p) => p.id === targetProjectId) : undefined;
   if (focused) sortedProjects = [focused];
 
-  let weeklyMinutes = 0;
-  if (profile && profile.role !== "parent") {
-    const weekStart = startOfWeek(new Date()).toISOString();
-    const { data: mySessions } = await supabase
-      .from("clock_sessions")
-      .select("clock_in, clock_out")
-      .eq("user_id", profile.id)
-      .gte("clock_in", weekStart);
-    // eslint-disable-next-line react-hooks/purity -- server-rendered timestamp for an open session, not a memoized value
-    const now = Date.now();
-    weeklyMinutes = (mySessions ?? []).reduce((sum, s) => sum + sessionMinutes(s.clock_in, s.clock_out, now), 0);
-  }
-  const underWeeklyMinimum = profile && profile.role !== "parent" && weeklyMinutes < WEEKLY_MINIMUM_MINUTES;
-
   const sortHref = (s: BoardSort) => {
     const params = new URLSearchParams();
     if (focusProjectId) params.set("project", focusProjectId);
@@ -72,12 +57,6 @@ export default async function ProjectsPage({
 
   return (
     <div>
-      {underWeeklyMinimum && (
-        <div className="mb-6 rounded-lg border border-crimson/20 bg-crimson/5 px-4 py-3 text-sm text-crimson">
-          You&rsquo;re at {(weeklyMinutes / 60).toFixed(1)}h this week — the team asks for 6+ hours.
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">Projects</h1>

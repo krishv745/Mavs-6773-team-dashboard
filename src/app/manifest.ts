@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${APP_NAME} — FRC ${TEAM_NAME}`,
     short_name: APP_NAME,
-    description: `${APP_NAME} — task manager, events, parts inventory, and clock log for FRC ${TEAM_NAME}.`,
+    description: `${APP_NAME} — task manager, events, parts inventory, and work logs for FRC ${TEAM_NAME}.`,
     start_url: "/team/projects",
     scope: "/team",
     display: "standalone",

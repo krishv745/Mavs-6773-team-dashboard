@@ -13,9 +13,6 @@ export default function LoginPage() {
   return (
     <>
       <h1 className="font-display text-2xl font-bold text-ink">Sign in to {APP_NAME}</h1>
-      <p className="mt-1 text-sm text-ink/60">
-        Logging in clocks you in automatically.
-      </p>
 
       <form action={formAction} className="mt-6 space-y-4">
         <div>

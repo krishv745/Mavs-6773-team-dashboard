@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
-import { getOpenSession } from "@/lib/clock";
 import { formatCalendarDate } from "@/lib/formatTime";
 import { deadlineError } from "@/lib/deadlines";
 import { nextProjectColor, isValidProjectColor } from "@/lib/projectColors";
@@ -133,7 +132,7 @@ export async function reopenProjectAction(projectId: string) {
  * Requires delete_projects. Deletes the project and its tasks (and the
  * deadline-change log), but keeps every work log: each log's task_id goes
  * null and its task_title snapshots the name, so the entries stay readable
- * in the Clock Log. Requires typing the project's name to confirm.
+ * in the Logs tab. Requires typing the project's name to confirm.
  */
 export async function deleteProjectAction(
   _prev: ActionState,
@@ -256,7 +255,7 @@ export async function archiveTaskAction(taskId: string) {
 /**
  * Requires delete_tasks. Removes the task and its assignees, but keeps its
  * work logs: each log's task_id goes null and its task_title snapshots the
- * name, so the entry stays readable in the Clock Log.
+ * name, so the entry stays readable in the Logs tab.
  */
 export async function deleteTaskAction(taskId: string) {
   const profile = await getCurrentProfile();
@@ -598,11 +597,9 @@ export async function addTaskLogFromDashboardAction(
   const { data: task } = await admin.from("tasks").select("project_id").eq("id", taskId).maybeSingle();
   if (!task) return { error: "That task no longer exists." };
 
-  const openSession = await getOpenSession(profile.id);
   const { error } = await admin.from("task_logs").insert({
     task_id: taskId,
     user_id: profile.id,
-    clock_session_id: openSession?.id ?? null,
     description,
     photo_url: photoUrls[0] ?? null,
     photo_urls: photoUrls,

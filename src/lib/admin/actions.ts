@@ -19,38 +19,6 @@ export async function deleteMemberAction(userId: string) {
   revalidatePath("/team/admin");
 }
 
-/**
- * Owner-only: removes a single clock_sessions row that's inflating (or
- * otherwise wrong in) a member's official hour totals — e.g. a forgotten
- * clock-out. Any task_logs pointing at the session are detached (kept, just
- * no longer tied to that session) rather than deleted, and a snapshot of
- * what was removed is kept in clock_session_deletions for audit purposes.
- */
-export async function deleteClockSessionAction(sessionId: string) {
-  const profile = await getCurrentProfile();
-  if (!hasPermission(profile, "delete_clock_sessions")) throw new Error("Not authorized to delete clock log entries.");
-
-  const admin = createAdminClient();
-  const { data: session } = await admin
-    .from("clock_sessions")
-    .select("user_id, clock_in, clock_out")
-    .eq("id", sessionId)
-    .maybeSingle();
-  if (!session) return;
-
-  await admin.from("clock_session_deletions").insert({
-    user_id: session.user_id,
-    clock_in: session.clock_in,
-    clock_out: session.clock_out,
-    deleted_by: profile!.id,
-  });
-  await admin.from("task_logs").update({ clock_session_id: null }).eq("clock_session_id", sessionId);
-  await admin.from("clock_sessions").delete().eq("id", sessionId);
-
-  revalidatePath("/team/admin");
-  if (session.user_id) revalidatePath(`/team/admin/members/${session.user_id}`);
-}
-
 export async function addMemberAction(
   _prev: { error?: string } | undefined,
   formData: FormData,

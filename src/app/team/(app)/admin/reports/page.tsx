@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
-import { sessionMinutes } from "@/lib/hours";
 import { formatClockDateTime, formatShortDate } from "@/lib/formatTime";
 import { isVideoUrl } from "@/lib/media";
 import SummarizeReportButton from "@/components/team/SummarizeReportButton";
@@ -42,11 +41,6 @@ export default async function AdminReportsPage({
 
   const supabase = await createServerClient();
 
-  let sessionsQuery = supabase
-    .from("clock_sessions")
-    .select("user_id, clock_in, clock_out")
-    .gte("clock_in", rangeStartIso)
-    .lt("clock_in", rangeEndIso);
   let logsQuery = supabase
     .from("task_logs")
     .select("id, task_id, user_id, timestamp, description, photo_url, photo_urls, audio_transcript")
@@ -54,12 +48,10 @@ export default async function AdminReportsPage({
     .lt("timestamp", rangeEndIso)
     .order("timestamp", { ascending: false });
   if (isFiltered) {
-    sessionsQuery = sessionsQuery.in("user_id", selectedPersonIds.length ? selectedPersonIds : [""]);
     logsQuery = logsQuery.in("user_id", selectedPersonIds.length ? selectedPersonIds : [""]);
   }
 
-  const [{ data: sessions }, { data: logs }, { data: users }] = await Promise.all([
-    sessionsQuery,
+  const [{ data: logs }, { data: users }] = await Promise.all([
     logsQuery,
     supabase.from("users").select("id, name").order("name", { ascending: true }),
   ]);
@@ -71,16 +63,6 @@ export default async function AdminReportsPage({
     ? await supabase.from("tasks").select("id, title").in("id", taskIds)
     : { data: [] };
   const taskTitle = new Map((tasks ?? []).map((t) => [t.id, t.title]));
-
-  // eslint-disable-next-line react-hooks/purity -- server-rendered timestamp for open sessions, not memoized
-  const now = Date.now();
-  const minutesByUser = new Map<string, number>();
-  for (const s of sessions ?? []) {
-    minutesByUser.set(s.user_id, (minutesByUser.get(s.user_id) ?? 0) + sessionMinutes(s.clock_in, s.clock_out, now));
-  }
-  const hourRows = [...minutesByUser.entries()]
-    .map(([userId, minutes]) => ({ userId, name: userName.get(userId) ?? "A member", hours: minutes / 60 }))
-    .sort((a, b) => b.hours - a.hours);
 
   const photos = (logs ?? []).flatMap((l) => {
     const urls = l.photo_urls.length > 0 ? l.photo_urls : l.photo_url ? [l.photo_url] : [];
@@ -95,7 +77,7 @@ export default async function AdminReportsPage({
 
       <h1 className="font-display mt-3 text-2xl font-bold text-ink">Activity Report</h1>
       <p className="mt-1 text-sm text-ink/60">
-        Everything logged, and hours worked, in a date range.
+        Everything logged in a date range.
       </p>
 
       <form className="mt-6 flex flex-wrap items-end gap-3" method="GET">
@@ -149,34 +131,6 @@ export default async function AdminReportsPage({
           </div>
         </fieldset>
       </form>
-
-      <section className="mt-8">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-ink/40">
-          Hours by person
-        </h2>
-        {hourRows.length === 0 ? (
-          <p className="mt-3 text-sm text-ink/50">No clocked hours in this range.</p>
-        ) : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-hairline bg-surface">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-hairline bg-tint/60 text-xs uppercase tracking-wide text-ink/50">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Member</th>
-                  <th className="px-4 py-3 font-semibold">Hours</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hourRows.map((row) => (
-                  <tr key={row.userId} className="border-b border-hairline last:border-0">
-                    <td className="px-4 py-3 font-medium text-ink">{row.name}</td>
-                    <td className="px-4 py-3 text-ink/70">{row.hours.toFixed(1)}h</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
 
       <section className="mt-8">
         <SummarizeReportButton

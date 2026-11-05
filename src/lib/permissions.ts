@@ -63,13 +63,8 @@ export const PERMISSIONS = [
   },
   {
     key: "view_admin_hours",
-    label: "View hour tracking",
-    description: "View the Admin Dashboard's hour totals and the Activity Report",
-  },
-  {
-    key: "delete_clock_sessions",
-    label: "Delete clock sessions",
-    description: "Remove a member's individual clock-in/out entry",
+    label: "View activity report",
+    description: "View the Admin Dashboard's Activity Report of everything logged",
   },
 ] as const;
 
