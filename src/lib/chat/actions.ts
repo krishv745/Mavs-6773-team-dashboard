@@ -8,6 +8,7 @@ import { createTaskAction, addTaskLogFromDashboardAction } from "@/lib/tasks/act
 import { createEventAction } from "@/lib/events/actions";
 import { createPartAction } from "@/lib/parts/actions";
 import { SUBTEAMS } from "@/lib/subteams";
+import { APP_NAME, TEAM_NAME } from "@/lib/brand";
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -112,7 +113,7 @@ export async function chatAction(message: string, history: ChatMessage[]): Promi
     : "(no projects exist yet — a task can't be created until one does)";
   const subteamList = SUBTEAMS.map((s) => `${s.value} (${s.label})`).join(", ");
 
-  const systemPrompt = `You are the team assistant embedded in FRC Max Throttle Mavericks 6773's app. You help members create tasks, events, and parts, and log work updates, by proposing one action at a time for the member to confirm before anything is actually saved — you never write directly, you only propose.
+  const systemPrompt = `You are the team assistant embedded in ${APP_NAME}, FRC ${TEAM_NAME}'s team app. You help members create tasks, events, and parts, and log work updates, by proposing one action at a time for the member to confirm before anything is actually saved — you never write directly, you only propose.
 
 Available projects (Projects tab):
 ${projectList}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Oswald, Inter } from "next/font/google";
 import "./globals.css";
+import { APP_NAME, TEAM_NAME } from "@/lib/brand";
 
 const oswald = Oswald({
   variable: "--font-oswald",
@@ -14,9 +15,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FRC Max Throttle Mavericks 6773 | Team Management App",
-  description:
-    "Task manager, events, parts inventory, and clock log for FRC Max Throttle Mavericks 6773.",
+  title: `${APP_NAME} | FRC ${TEAM_NAME}`,
+  description: `${APP_NAME} — task manager, events, parts inventory, and clock log for FRC ${TEAM_NAME}.`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -13,6 +13,7 @@ import SubmitButton from "@/components/team/SubmitButton";
 import ChatPanel from "@/components/team/ChatPanel";
 import ThemeToggle from "@/components/team/ThemeToggle";
 import { hasPermission } from "@/lib/permissions";
+import { APP_NAME, TEAM_NAME } from "@/lib/brand";
 import type { Profile } from "@/lib/auth/session";
 
 const MEMBER_TABS = [
@@ -81,9 +82,10 @@ export default function AppHeader({
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link href={homeHref} className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="Max Throttle Mavericks 6773" width={32} height={32} />
-            <span className="hidden font-display text-base font-bold text-navy sm:inline">
-              MAX THROTTLE MAVERICKS
+            <Image src="/logo.png" alt={TEAM_NAME} width={36} height={36} />
+            <span className="hidden flex-col leading-none sm:flex">
+              <span className="font-display text-base font-bold uppercase text-navy">{APP_NAME}</span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-ink/50">{TEAM_NAME}</span>
             </span>
           </Link>
           <ThemeToggle />

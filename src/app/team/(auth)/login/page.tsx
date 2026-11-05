@@ -5,13 +5,14 @@ import { useActionState } from "react";
 import { logInAction } from "@/lib/auth/actions";
 import PasswordField from "@/components/team/PasswordField";
 import SubmitButton from "@/components/team/SubmitButton";
+import { APP_NAME } from "@/lib/brand";
 
 export default function LoginPage() {
   const [state, formAction] = useActionState(logInAction, undefined);
 
   return (
     <>
-      <h1 className="font-display text-2xl font-bold text-ink">Sign in</h1>
+      <h1 className="font-display text-2xl font-bold text-ink">Sign in to {APP_NAME}</h1>
       <p className="mt-1 text-sm text-ink/60">
         Logging in clocks you in automatically.
       </p>

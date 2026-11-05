@@ -1,4 +1,4 @@
-const CACHE_NAME = "tech-titans-team-shell-v2";
+const CACHE_NAME = "krish-kommand-shell-v3";
 const SHELL_URLS = ["/team/tasks", "/logo.png"];
 
 self.addEventListener("install", (event) => {

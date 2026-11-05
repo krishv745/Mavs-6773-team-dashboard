@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
+import { APP_NAME, TEAM_NAME } from "@/lib/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "FRC Max Throttle Mavericks 6773 — Team Management App",
-    short_name: "Mavericks 6773",
-    description:
-      "Task manager, events, parts inventory, and clock log for FRC Max Throttle Mavericks 6773.",
+    name: `${APP_NAME} — FRC ${TEAM_NAME}`,
+    short_name: APP_NAME,
+    description: `${APP_NAME} — task manager, events, parts inventory, and clock log for FRC ${TEAM_NAME}.`,
     start_url: "/team/projects",
     scope: "/team",
     display: "standalone",
