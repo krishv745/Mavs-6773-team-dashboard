@@ -106,25 +106,19 @@ export async function updateSession(request: NextRequest) {
       );
     }
 
-    const homePath = role === "parent" ? "/team/events" : "/team/projects";
+    const homePath = "/team/projects";
 
     if (isAuthPath) {
       const url = request.nextUrl.clone();
       url.pathname = homePath;
+      // Land on the default view (By priority list), not whatever query the auth URL carried.
+      url.search = "";
       return NextResponse.redirect(url);
     }
 
     if (path !== "/team/reset-password" && mustResetPassword) {
       const url = request.nextUrl.clone();
       url.pathname = "/team/reset-password";
-      return NextResponse.redirect(url);
-    }
-
-    // Parent accounts only ever see the Events tab (plus their own profile).
-    const parentAllowedPaths = ["/team/events", "/team/profile", "/team/reset-password"];
-    if (role === "parent" && !parentAllowedPaths.some((p) => path.startsWith(p))) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/team/events";
       return NextResponse.redirect(url);
     }
   }

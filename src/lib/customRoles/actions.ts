@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
 import { isPermissionKey } from "@/lib/permissions";
+import { DEFAULT_SYSTEM_ROLE_FOR_TIER } from "@/lib/roles";
 import type { UserRole } from "@/lib/supabase/types";
 
 const OWNER_GATED_TIERS: UserRole[] = ["team_lead", "owner"];
-const VALID_TIERS: UserRole[] = ["member", "parent", "team_lead", "owner"];
+const VALID_TIERS: UserRole[] = ["member", "team_lead", "owner"];
 
 /**
  * Requires manage_roles. Creates a custom-named role. It starts out mapped
@@ -40,11 +41,13 @@ export async function createCustomRoleAction(
     .single();
   if (error || !role) return { error: error?.message ?? "Could not create role." };
 
+  // Two system roles share the member tier (Team Lead and the view-only
+  // Team Member) — a new custom role starts from the tier's default one.
   const { data: startingTier } = await admin
     .from("roles")
     .select("id")
     .eq("is_system", true)
-    .eq("maps_to", mapsTo)
+    .eq("name", DEFAULT_SYSTEM_ROLE_FOR_TIER[mapsTo] ?? "")
     .maybeSingle();
   if (startingTier) {
     const { data: defaultPerms } = await admin
@@ -62,7 +65,7 @@ export async function createCustomRoleAction(
   return undefined;
 }
 
-/** Requires manage_roles. System roles (Owner/Team Lead/Team Member/Parent) can't be deleted. */
+/** Requires manage_roles. System roles (Owner/Senior Team Lead/Team Lead/Team Member) can't be deleted. */
 export async function deleteCustomRoleAction(roleId: string) {
   const profile = await getCurrentProfile();
   if (!hasPermission(profile, "manage_roles")) throw new Error("Not authorized.");
@@ -99,7 +102,7 @@ export async function updateRolePermissionsAction(
   // the same "Owner/Team-Lead-tier access" boundary role changes do — keep
   // it Owner-only rather than letting a manage_roles-holder self-escalate.
   if (OWNER_GATED_TIERS.includes(role.maps_to) && profile!.role !== "owner") {
-    return { error: "Only the Owner can edit a role that maps to Team Lead." };
+    return { error: "Only the Owner can edit a role that maps to Senior Team Lead." };
   }
 
   const validKeys = permissionKeys.filter(isPermissionKey);
@@ -139,7 +142,7 @@ export async function assignCustomRoleAction(
   const touchesOwnerGatedTier =
     OWNER_GATED_TIERS.includes(role.maps_to) || OWNER_GATED_TIERS.includes(target.role);
   if (touchesOwnerGatedTier && profile!.role !== "owner") {
-    return { error: "Only the Owner can assign a role that grants Team Lead / Owner access." };
+    return { error: "Only the Owner can assign a role that grants Senior Team Lead / Owner access." };
   }
 
   const { error } = await admin

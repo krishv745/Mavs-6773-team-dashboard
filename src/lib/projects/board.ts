@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, TaskRow } from "@/lib/supabase/types";
+import type { Database, TaskRow, TaskStageRow } from "@/lib/supabase/types";
 import { PRIORITY_RANK } from "@/lib/priority";
 import type { RowAssignee, TaskLogEntry } from "@/components/team/DashboardTaskRow";
 
@@ -17,7 +17,7 @@ export type BoardSort = "priority" | "timeline";
 export async function buildBoardData(supabase: Client, tasks: TaskRow[], sort: BoardSort) {
   const taskIds = tasks.map((t) => t.id);
 
-  const [{ data: assigneeRows }, { data: logRows }] = await Promise.all([
+  const [{ data: assigneeRows }, { data: logRows }, { data: stageRows }] = await Promise.all([
     taskIds.length
       ? supabase.from("task_assignees").select("task_id, user_id").in("task_id", taskIds)
       : Promise.resolve({ data: [] as { task_id: string; user_id: string }[] }),
@@ -28,6 +28,9 @@ export async function buildBoardData(supabase: Client, tasks: TaskRow[], sort: B
           .in("task_id", taskIds)
           .order("timestamp", { ascending: true })
       : Promise.resolve({ data: [] as never[] }),
+    taskIds.length
+      ? supabase.from("task_stages").select("*").in("task_id", taskIds).order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as TaskStageRow[] }),
   ]);
 
   const peopleIds = [
@@ -88,5 +91,12 @@ export async function buildBoardData(supabase: Client, tasks: TaskRow[], sort: B
     logsByTask.set(l.task_id, list);
   }
 
-  return { tasksByProject, assigneesByTask, logsByTask };
+  const stagesByTask = new Map<string, TaskStageRow[]>();
+  for (const st of stageRows ?? []) {
+    const list = stagesByTask.get(st.task_id) ?? [];
+    list.push(st);
+    stagesByTask.set(st.task_id, list);
+  }
+
+  return { tasksByProject, assigneesByTask, logsByTask, stagesByTask };
 }

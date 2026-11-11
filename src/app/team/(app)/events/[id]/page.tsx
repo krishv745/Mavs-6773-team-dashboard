@@ -21,6 +21,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   if (!event) notFound();
 
   const canManageEvents = hasPermission(profile, "manage_events");
+  const canContribute = hasPermission(profile, "contribute");
   const canDeleteEvents = hasPermission(profile, "delete_events");
   const seesAllEvents = canManageEvents || canDeleteEvents;
   const visible =
@@ -147,8 +148,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
       {roleOptions.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-4">
-          <VolunteerModal eventId={event.id} roles={roleOptions} hasFutureOccurrences={hasFutureOccurrences} />
-          <RemoveRegistrationModal registrations={myRegistrations} />
+          {canContribute && (
+            <VolunteerModal eventId={event.id} roles={roleOptions} hasFutureOccurrences={hasFutureOccurrences} />
+          )}
+          {canContribute && <RemoveRegistrationModal registrations={myRegistrations} />}
           {canManageEvents && (
             <AssignVolunteerModal
               eventId={event.id}

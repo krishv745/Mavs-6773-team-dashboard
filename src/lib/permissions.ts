@@ -12,9 +12,15 @@
  */
 export const PERMISSIONS = [
   {
-    key: "approve_tasks",
-    label: "Approve tasks",
-    description: "Approve or reject pending tasks; a role with this skips approval on its own submissions",
+    key: "contribute",
+    label: "Contribute",
+    description:
+      "Submit tasks and projects, add work logs, sign up to volunteer, add/edit parts and move stock. Without this a role is view-only",
+  },
+  {
+    key: "create_tasks",
+    label: "Add tasks & projects",
+    description: "Create new projects on the Projects tab and add tasks to them",
   },
   {
     key: "edit_tasks",
@@ -54,7 +60,7 @@ export const PERMISSIONS = [
   {
     key: "manage_members",
     label: "Manage members",
-    description: "Add members, reset passwords, edit member info, change roles (up to Team Lead)",
+    description: "Add members, reset passwords, edit member info, change roles (Senior Team Lead is Owner-only)",
   },
   {
     key: "manage_roles",

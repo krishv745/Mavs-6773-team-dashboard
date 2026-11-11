@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
 import { PLACEHOLDER_EMAIL_DOMAIN, USERNAME_PATTERN } from "@/lib/auth/constants";
-import type { UserRole } from "@/lib/supabase/types";
+import { NEW_MEMBER_ROLE_CHOICES } from "@/lib/roles";
 
-/** Owner-only: the one action a Team Lead cannot perform. */
+/** Owner-only: the one action a Senior Team Lead cannot perform. */
 export async function deleteMemberAction(userId: string) {
   const profile = await getCurrentProfile();
   if (profile?.role !== "owner") throw new Error("Only the Owner can delete accounts.");
@@ -29,16 +29,16 @@ export async function addMemberAction(
   const name = String(formData.get("name") ?? "").trim();
   const username = String(formData.get("username") ?? "").trim();
   const starterPassword = String(formData.get("starterPassword") ?? "");
-  const requestedRole = String(formData.get("role") ?? "member") as UserRole;
+  const choice = NEW_MEMBER_ROLE_CHOICES.find((c) => c.value === String(formData.get("role") ?? "viewer"));
 
   if (!name || !username || starterPassword.length < 8) {
     return { error: "Fill in name, username, and an 8+ character starter password." };
   }
 
-  const assignableRoles: UserRole[] =
-    profile!.role === "owner" ? ["member", "parent", "team_lead"] : ["member", "parent"];
-  if (!assignableRoles.includes(requestedRole)) {
-    return { error: "Only the Owner can create a Team Lead account." };
+  if (!choice) return { error: "Pick a role." };
+  const requestedRole = choice.tier;
+  if (requestedRole === "team_lead" && profile!.role !== "owner") {
+    return { error: "Only the Owner can create a Senior Team Lead account." };
   }
 
   const admin = createAdminClient();
@@ -63,7 +63,7 @@ export async function addMemberAction(
     .from("roles")
     .select("id")
     .eq("is_system", true)
-    .eq("maps_to", requestedRole)
+    .eq("name", choice.roleName)
     .maybeSingle();
 
   const { error: insertError } = await admin.from("users").insert({

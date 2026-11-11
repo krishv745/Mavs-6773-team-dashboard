@@ -7,9 +7,9 @@ import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
 import { formatCalendarDate } from "@/lib/formatTime";
 import { deadlineError } from "@/lib/deadlines";
 import { nextProjectColor, isValidProjectColor } from "@/lib/projectColors";
-import { isSubteam } from "@/lib/subteams";
+import { isSubteam, isStageKind, stageLabel } from "@/lib/subteams";
 import type { ActionState } from "@/lib/auth/actions";
-import type { Subteam, TaskPriority } from "@/lib/supabase/types";
+import type { Subteam, TaskPriority, TaskStageKind } from "@/lib/supabase/types";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -59,6 +59,7 @@ export async function createProjectAction(
 ): Promise<{ error?: string; ok?: boolean }> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
+  if (!hasPermission(profile, "create_tasks")) return { error: "Only Senior Team Leads and the Owner can add tasks and projects." };
 
   const name = String(formData.get("name") ?? "").trim();
   const deadline = String(formData.get("deadline") ?? "") || null;
@@ -168,26 +169,44 @@ export async function createTaskAction(
 ): Promise<{ error?: string; ok?: boolean }> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
+  if (!hasPermission(profile, "create_tasks")) return { error: "Only Senior Team Leads and the Owner can add tasks and projects." };
 
   const projectId = String(formData.get("projectId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const subteam = String(formData.get("subteam") ?? "") as Subteam;
   const description = String(formData.get("description") ?? "").trim() || null;
   const ongoing = formData.get("ongoing") === "on" || formData.get("ongoing") === "true";
-  const deadline = ongoing ? null : String(formData.get("deadline") ?? "") || null;
   const priorityRaw = String(formData.get("priority") ?? "medium");
   const priority: TaskPriority = priorityRaw === "high" || priorityRaw === "low" ? priorityRaw : "medium";
   const assigneeIds = formData.getAll("assigneeIds").map((v) => String(v)).filter(Boolean);
 
-  if (!projectId || !title || !subteam) {
-    return { error: "Task name and subteam are required." };
+  if (!projectId || !title) return { error: "Task name is required." };
+  if (!isSubteam(subteam)) {
+    return { error: "Pick at least one subteam stage. Testing can't be the only stage." };
   }
-  if (deadline && deadlineError(deadline)) return { error: deadlineError(deadline)! };
 
-  // Anyone who can approve tasks doesn't need their own submissions
-  // approved — everyone else's stay pending until someone with that
-  // permission approves them.
-  const staffCreated = hasPermission(profile, "approve_tasks");
+  // The form only asks for stages: `subteam` is the main stage (the first
+  // subteam picked) and `stageKinds` are the rest, each with its own deadline.
+  const stageKinds = [
+    ...new Set(formData.getAll("stageKinds").map((v) => String(v))),
+  ].filter((k): k is TaskStageKind => isStageKind(k) && k !== subteam);
+  const stages = [subteam as TaskStageKind, ...stageKinds].map((kind) => ({
+    kind,
+    deadline: ongoing ? null : String(formData.get(`stageDeadline_${kind}`) ?? "") || null,
+  }));
+  for (const st of stages) {
+    if (st.deadline && deadlineError(st.deadline)) {
+      return { error: `${stageLabel(st.kind)}: ${deadlineError(st.deadline)}` };
+    }
+  }
+
+  // The task as a whole is due when its last stage is.
+  const deadline =
+    stages
+      .map((st) => st.deadline)
+      .filter((d): d is string => Boolean(d))
+      .sort()
+      .at(-1) ?? null;
 
   const admin = createAdminClient();
   const { data: task, error } = await admin
@@ -201,7 +220,9 @@ export async function createTaskAction(
       priority,
       created_by: profile.id,
       project_id: projectId,
-      ...(staffCreated ? { status: "active" as const, approved_by: profile.id } : {}),
+      // No approval step — a new task is live immediately.
+      status: "active" as const,
+      approved_by: profile.id,
     })
     .select("id")
     .single();
@@ -210,6 +231,13 @@ export async function createTaskAction(
   if (assigneeIds.length > 0) {
     await admin.from("task_assignees").insert(assigneeIds.map((userId) => ({ task_id: task.id, user_id: userId })));
   }
+
+  // Upsert so the main stage gets its own deadline instead of the DB
+  // trigger's default (which copies the task's overall deadline).
+  await admin.from("task_stages").upsert(
+    stages.map((st) => ({ task_id: task.id, kind: st.kind, deadline: st.deadline, started_by: profile.id })),
+    { onConflict: "task_id,kind" },
+  );
 
   if (deadline) {
     await extendProjectDeadlineIfNeeded(admin, projectId, deadline, title, profile.id);
@@ -550,28 +578,6 @@ export async function updateTaskPriorityAction(
   return {};
 }
 
-export async function approveTaskAction(taskId: string) {
-  const profile = await getCurrentProfile();
-  if (!hasPermission(profile, "approve_tasks")) throw new Error("Not authorized.");
-
-  const admin = createAdminClient();
-  await admin
-    .from("tasks")
-    .update({ status: "active", approved_by: profile!.id })
-    .eq("id", taskId);
-  revalidatePath("/team/admin");
-  revalidateBoard();
-}
-
-export async function rejectTaskAction(taskId: string) {
-  const profile = await getCurrentProfile();
-  if (!hasPermission(profile, "approve_tasks")) throw new Error("Not authorized.");
-
-  const admin = createAdminClient();
-  await admin.from("tasks").delete().eq("id", taskId);
-  revalidatePath("/team/admin");
-}
-
 /**
  * Log entry added straight from the Projects dashboard's inline composer (or
  * the chat assistant) — description + any number of photos, stays put and
@@ -583,6 +589,7 @@ export async function addTaskLogFromDashboardAction(
 ): Promise<{ error?: string; ok?: boolean }> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
 
   const taskId = String(formData.get("taskId") ?? "");
   const description = String(formData.get("description") ?? "").trim() || null;
@@ -608,4 +615,134 @@ export async function addTaskLogFromDashboardAction(
 
   revalidateBoard();
   return { ok: true };
+}
+
+/**
+ * Requires edit_tasks. Starts a follow-on stage on a task (e.g. a CAD task
+ * moving on to Mechanical or Testing) with its own optional deadline. Logged
+ * in the task's activity log, and a stage deadline pulls the project's
+ * deadline forward just like the task's own deadline does.
+ */
+export async function startTaskStageAction(
+  taskId: string,
+  kind: TaskStageKind,
+  deadline: string | null,
+): Promise<{ error?: string }> {
+  const profile = await getCurrentProfile();
+  if (!hasPermission(profile, "edit_tasks")) return { error: "Not authorized." };
+  if (!taskId) return { error: "Missing task." };
+  if (!isStageKind(kind)) return { error: "Not a valid stage." };
+  const due = deadline || null;
+  if (due && deadlineError(due)) return { error: deadlineError(due)! };
+
+  const admin = createAdminClient();
+  const { data: task } = await admin.from("tasks").select("title, subteam, project_id").eq("id", taskId).maybeSingle();
+  if (!task) return { error: "That task no longer exists." };
+
+  const { error } = await admin
+    .from("task_stages")
+    .insert({ task_id: taskId, kind, deadline: due, started_by: profile!.id });
+  if (error) {
+    return { error: error.code === "23505" ? `${stageLabel(kind)} is already started.` : error.message };
+  }
+
+  await admin.from("task_logs").insert({
+    task_id: taskId,
+    user_id: profile!.id,
+    description: `▶️ Started ${stageLabel(kind)}${due ? ` — due ${formatDate(due)}` : ""}`,
+  });
+  if (due && task.project_id) {
+    await extendProjectDeadlineIfNeeded(admin, task.project_id, due, `${task.title} (${stageLabel(kind)})`, profile!.id);
+  }
+
+  revalidateBoard();
+  return {};
+}
+
+/** Requires edit_tasks. Changes (or clears) a stage's deadline. */
+export async function updateTaskStageDeadlineAction(
+  stageId: string,
+  deadline: string | null,
+): Promise<{ error?: string }> {
+  const profile = await getCurrentProfile();
+  if (!hasPermission(profile, "edit_tasks")) return { error: "Not authorized." };
+  const due = deadline && deadline !== "ongoing" ? deadline : null;
+  if (due && deadlineError(due)) return { error: deadlineError(due)! };
+
+  const admin = createAdminClient();
+  const { data: stage } = await admin.from("task_stages").select("task_id, kind, deadline").eq("id", stageId).maybeSingle();
+  if (!stage) return { error: "That stage no longer exists." };
+  if (stage.deadline === due) return {};
+
+  const { error } = await admin.from("task_stages").update({ deadline: due }).eq("id", stageId);
+  if (error) return { error: error.message };
+
+  const label = stageLabel(stage.kind);
+  const note = due
+    ? stage.deadline
+      ? `📅 ${label} deadline changed from ${formatDate(stage.deadline)} to ${formatDate(due)}`
+      : `📅 ${label} deadline set to ${formatDate(due)}`
+    : `📅 ${label} deadline removed`;
+  await admin.from("task_logs").insert({ task_id: stage.task_id, user_id: profile!.id, description: note });
+
+  if (due) {
+    const { data: task } = await admin.from("tasks").select("title, project_id").eq("id", stage.task_id).maybeSingle();
+    if (task?.project_id) {
+      await extendProjectDeadlineIfNeeded(admin, task.project_id, due, `${task.title} (${label})`, profile!.id);
+    }
+  }
+
+  revalidateBoard();
+  return {};
+}
+
+/** Requires edit_tasks. Marks a stage done, or reopens it. */
+export async function setTaskStageCompleteAction(stageId: string, complete: boolean): Promise<{ error?: string }> {
+  const profile = await getCurrentProfile();
+  if (!hasPermission(profile, "edit_tasks")) return { error: "Not authorized." };
+
+  const admin = createAdminClient();
+  const { data: stage } = await admin.from("task_stages").select("task_id, kind").eq("id", stageId).maybeSingle();
+  if (!stage) return { error: "That stage no longer exists." };
+
+  const { error } = await admin
+    .from("task_stages")
+    .update({ completed_at: complete ? new Date().toISOString() : null })
+    .eq("id", stageId);
+  if (error) return { error: error.message };
+
+  await admin.from("task_logs").insert({
+    task_id: stage.task_id,
+    user_id: profile!.id,
+    description: complete ? `✅ ${stageLabel(stage.kind)} done` : `↩️ ${stageLabel(stage.kind)} reopened`,
+  });
+
+  revalidateBoard();
+  return {};
+}
+
+/** Requires edit_tasks. Removes a stage started by mistake. */
+export async function removeTaskStageAction(stageId: string): Promise<{ error?: string }> {
+  const profile = await getCurrentProfile();
+  if (!hasPermission(profile, "edit_tasks")) return { error: "Not authorized." };
+
+  const admin = createAdminClient();
+  const { data: stage } = await admin.from("task_stages").select("task_id, kind").eq("id", stageId).maybeSingle();
+  if (!stage) return {};
+  const { data: owner } = await admin.from("tasks").select("subteam").eq("id", stage.task_id).maybeSingle();
+  if (owner?.subteam === stage.kind) {
+    return { error: "That's the task's main subteam. Change the task's subteam instead of removing it." };
+  }
+
+  const { error } = await admin.from("task_stages").delete().eq("id", stageId);
+  if (error) return { error: error.message };
+
+  await admin.from("task_logs").insert({
+    task_id: stage.task_id,
+    user_id: profile!.id,
+    description: `🗑️ Removed ${stageLabel(stage.kind)} stage`,
+  });
+
+  revalidateBoard();
+  return {};
 }

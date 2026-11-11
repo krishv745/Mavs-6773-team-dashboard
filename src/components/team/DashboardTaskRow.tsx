@@ -6,19 +6,20 @@ import TaskCompleteCheckbox from "@/components/team/TaskCompleteCheckbox";
 import TaskPrioritySelect from "@/components/team/TaskPrioritySelect";
 import TaskDueTimeline from "@/components/team/TaskDueTimeline";
 import TaskLogComposer from "@/components/team/TaskLogComposer";
+import TaskStages from "@/components/team/TaskStages";
 import UnarchiveTaskButton from "@/components/team/UnarchiveTaskButton";
 import DeleteTaskButton from "@/components/team/DeleteTaskButton";
 import AssignMembersButton from "@/components/team/AssignMembersButton";
 import InlineText from "@/components/team/InlineText";
 import InlineDeadline from "@/components/team/InlineDeadline";
 import { updateTaskFieldAction, updateTaskAssigneesAction } from "@/lib/tasks/actions";
-import { SUBTEAMS, SUBTEAM_SHORT } from "@/lib/subteams";
+import { SUBTEAMS, SUBTEAM_SHORT, stageLabel } from "@/lib/subteams";
 import { priorityLabel, PRIORITY_STYLES } from "@/lib/priority";
 import { renderFormattedText } from "@/lib/formatText";
 import { formatClockDateTime } from "@/lib/formatTime";
 import { isVideoUrl } from "@/lib/media";
 import type { SelectableMember } from "@/components/team/MemberSelectionList";
-import type { Subteam, TaskRow } from "@/lib/supabase/types";
+import type { Subteam, TaskRow, TaskStageRow } from "@/lib/supabase/types";
 
 /** Shared 8-column grid — the header row in ProjectsBoardView must use the same template.
  *  check · task · add-log · assigned · subteam · priority · timeline · delete
@@ -46,17 +47,22 @@ export default function DashboardTaskRow({
   task,
   assignees,
   logs,
+  stages = [],
   members,
   autoExpand = false,
+  canContribute = true,
   canEditTasks,
   canDeleteTasks,
 }: {
   task: TaskRow;
   assignees: RowAssignee[];
   logs: TaskLogEntry[];
+  stages?: TaskStageRow[];
   members: SelectableMember[];
   /** Start expanded and scroll into view — used when arriving from My Tasks. */
   autoExpand?: boolean;
+  /** false for view-only roles — hides "Add a log". */
+  canContribute?: boolean;
   canEditTasks: boolean;
   canDeleteTasks: boolean;
 }) {
@@ -65,6 +71,7 @@ export default function DashboardTaskRow({
   const rowRef = useRef<HTMLDivElement>(null);
   const done = task.status === "completed";
   const archived = task.status === "archived";
+  const doneStages = stages.filter((st) => st.completed_at).length;
 
   useEffect(() => {
     if (autoExpand) rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -80,7 +87,13 @@ export default function DashboardTaskRow({
       {/* Row 1 — check · task · add-log · assigned · subteam · priority · timeline · delete */}
       <div className={`${TASK_GRID} px-3 py-2.5`}>
         <div className="flex items-center gap-2">
-          <TaskCompleteCheckbox taskId={task.id} completed={done} disabled={!canEditTasks || archived} />
+          <TaskCompleteCheckbox
+            taskId={task.id}
+            completed={done}
+            disabled={!canEditTasks || archived}
+            stagesDone={doneStages}
+            stagesTotal={stages.length}
+          />
         </div>
 
         <div className="mt-1 flex min-w-0 items-center gap-2 md:mt-0">
@@ -121,7 +134,7 @@ export default function DashboardTaskRow({
         </div>
 
         <div className="mt-2 flex min-w-0 justify-start md:mt-0">
-          {!archived && <TaskLogComposer taskId={task.id} variant="cell" />}
+          {!archived && canContribute && <TaskLogComposer taskId={task.id} variant="cell" />}
         </div>
 
         <div className="mt-2 flex min-w-0 items-center gap-1.5 md:mt-0">
@@ -175,6 +188,20 @@ export default function DashboardTaskRow({
             <span className="truncate rounded-full bg-navy/10 px-2 py-1 text-xs font-semibold text-navy">
               {SUBTEAM_SHORT[task.subteam]}
             </span>
+          )}
+          {stages.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              title={`Stages: ${stages
+                .map((st) => `${stageLabel(st.kind)}${st.completed_at ? " ✓" : ""}`)
+                .join(", ")}`}
+              className={`flex-none rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                doneStages < stages.length ? "bg-crimson/10 text-crimson" : "bg-emerald-500/10 text-emerald-600"
+              }`}
+            >
+              {doneStages}/{stages.length}
+            </button>
           )}
         </div>
 
@@ -238,6 +265,13 @@ export default function DashboardTaskRow({
               inputClassName="mt-1 w-full rounded-md border border-navy/40 bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:ring-2 focus:ring-navy/10"
             />
           </div>
+
+          <TaskStages
+            taskId={task.id}
+            taskSubteam={task.subteam}
+            stages={stages}
+            editable={canEditTasks && !archived}
+          />
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">

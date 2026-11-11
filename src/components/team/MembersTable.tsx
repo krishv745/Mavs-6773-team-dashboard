@@ -29,7 +29,7 @@ const COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "actions", label: "Actions" },
 ];
 
-const ROLES: UserRole[] = ["member", "parent", "team_lead", "owner"];
+const ROLES: UserRole[] = ["member", "team_lead", "owner"];
 
 const COLUMNS_STORAGE_KEY = "tt-admin-hours-hidden-columns";
 const ROLES_STORAGE_KEY = "tt-admin-hours-hidden-roles";

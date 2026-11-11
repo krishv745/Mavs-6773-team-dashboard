@@ -5,7 +5,7 @@ import DashboardProjectHeader from "@/components/team/DashboardProjectHeader";
 import DashboardTaskRow, { TASK_GRID, type RowAssignee, type TaskLogEntry } from "@/components/team/DashboardTaskRow";
 import { moveTaskToProjectAction } from "@/lib/tasks/actions";
 import type { SelectableMember } from "@/components/team/MemberSelectionList";
-import type { TaskProjectRow, TaskRow } from "@/lib/supabase/types";
+import type { TaskProjectRow, TaskRow, TaskStageRow } from "@/lib/supabase/types";
 
 type DraggingTask = { id: string; title: string; fromProjectId: string };
 
@@ -29,8 +29,11 @@ export default function ProjectsBoardView({
   tasksByProject,
   assigneesByTask,
   logsByTask,
+  stagesByTask,
   members,
   focusTaskId,
+  canContribute,
+  canCreateTasks,
   canEditTasks,
   canDeleteTasks,
   canEditProjects,
@@ -40,9 +43,14 @@ export default function ProjectsBoardView({
   tasksByProject: Map<string, TaskRow[]>;
   assigneesByTask: Map<string, RowAssignee[]>;
   logsByTask: Map<string, TaskLogEntry[]>;
+  stagesByTask: Map<string, TaskStageRow[]>;
   members: SelectableMember[];
   /** Task to auto-expand and scroll to (from My Tasks). */
   focusTaskId?: string;
+  /** false for view-only roles — hides Add Task / Add a log. */
+  canContribute: boolean;
+  /** Add Task button on each project — Senior Team Leads / Owner by default. */
+  canCreateTasks: boolean;
   canEditTasks: boolean;
   canDeleteTasks: boolean;
   canEditProjects: boolean;
@@ -176,6 +184,7 @@ export default function ProjectsBoardView({
                   completedAt: project.completed_at,
                 }}
                 members={members}
+                canCreateTasks={canCreateTasks}
                 canEditProjects={canEditProjects}
                 canDeleteProjects={canDeleteProjects}
               />
@@ -223,8 +232,10 @@ export default function ProjectsBoardView({
                           task={task}
                           assignees={assigneesByTask.get(task.id) ?? []}
                           logs={logsByTask.get(task.id) ?? []}
+                          stages={stagesByTask.get(task.id) ?? []}
                           members={members}
                           autoExpand={task.id === focusTaskId}
+                          canContribute={canContribute}
                           canEditTasks={canEditTasks}
                           canDeleteTasks={canDeleteTasks}
                         />

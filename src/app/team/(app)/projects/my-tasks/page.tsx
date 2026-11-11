@@ -18,6 +18,8 @@ export default async function MyTasksPage({
 
   const [profile, supabase] = await Promise.all([getCurrentProfile(), createServerClient()]);
   if (!profile) redirect("/team/login");
+  const canContribute = hasPermission(profile, "contribute");
+  const canCreateTasks = hasPermission(profile, "create_tasks");
   const canEditTasks = hasPermission(profile, "edit_tasks");
   const canDeleteTasks = hasPermission(profile, "delete_tasks");
   const canEditProjects = hasPermission(profile, "edit_projects");
@@ -42,7 +44,7 @@ export default async function MyTasksPage({
     supabase.from("users").select("id, name, role").order("name", { ascending: true }),
   ]);
 
-  const { tasksByProject, assigneesByTask, logsByTask } = await buildBoardData(supabase, myTasks, sort);
+  const { tasksByProject, assigneesByTask, logsByTask, stagesByTask } = await buildBoardData(supabase, myTasks, sort);
 
   const rank = (p: TaskProjectRow) => PRIORITY_RANK[p.priority] ?? 1;
   const sortedProjects = [...(projects ?? [])].sort(
@@ -119,7 +121,10 @@ export default async function MyTasksPage({
             tasksByProject={tasksByProject}
             assigneesByTask={assigneesByTask}
             logsByTask={logsByTask}
+            stagesByTask={stagesByTask}
             members={members ?? []}
+            canContribute={canContribute}
+            canCreateTasks={canCreateTasks}
             canEditTasks={canEditTasks}
             canDeleteTasks={canDeleteTasks}
             canEditProjects={canEditProjects}

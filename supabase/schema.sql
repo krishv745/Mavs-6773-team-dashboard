@@ -87,7 +87,7 @@ alter table public.users add column if not exists theme text not null default 's
 -- automatically as a *derived* legacy field — every custom role still maps
 -- to one of the four tiers via maps_to, and that mirrored value is what a
 -- handful of genuinely structural (non-permission) checks key off:
--- parent-only navigation, events.visible_to targeting, "am I eligible to
+-- events.visible_to targeting, Owner-only grants, "am I eligible to
 -- clock in" — none of which are things a role's permissions should be able
 -- to change. Owner is special-cased everywhere in code (isOwner()) rather
 -- than via a permission: there must always be exactly one, and only the
@@ -120,7 +120,8 @@ alter table public.users add column if not exists role_id uuid references public
 -- Seed the fixed permission catalog (see src/lib/permissions.ts — the two
 -- must be kept in sync by hand; there's no generator).
 insert into public.permissions (key, label, description) values
-  ('approve_tasks', 'Approve tasks', 'Approve or reject pending tasks; a role with this skips approval on its own submissions'),
+  ('contribute', 'Contribute', 'Submit tasks and projects, add work logs, sign up to volunteer, add/edit parts and move stock. Without this a role is view-only'),
+  ('create_tasks', 'Add tasks & projects', 'Create new projects on the Projects tab and add tasks to them'),
   ('edit_tasks', 'Edit tasks', 'Edit, archive/unarchive tasks, and change who''s assigned'),
   ('delete_tasks', 'Delete tasks', 'Permanently delete a task and its log entries'),
   ('edit_projects', 'Edit projects', 'Change a project''s deadline and color'),
@@ -128,21 +129,48 @@ insert into public.permissions (key, label, description) values
   ('manage_events', 'Manage events', 'Create/edit events, assign volunteers, cancel someone else''s sign-up'),
   ('delete_events', 'Delete events', 'Permanently delete an event and its sign-ups'),
   ('manage_parts', 'Manage parts', 'Add, edit, or delete parts; import a BOM; fetch missing images'),
-  ('manage_members', 'Manage members', 'Add members, reset passwords, edit member info, change roles (up to Team Lead)'),
+  ('manage_members', 'Manage members', 'Add members, reset passwords, edit member info, change roles (Senior Team Lead is Owner-only)'),
   ('manage_roles', 'Manage roles', 'Create, delete, and edit custom roles and their permissions'),
   ('view_admin_hours', 'View hour tracking', 'View the Admin Dashboard''s hour totals and the Activity Report'),
   ('delete_clock_sessions', 'Delete clock sessions', 'Remove a member''s individual clock-in/out entry')
 on conflict (key) do nothing;
 
--- Seed the four system roles (safe to re-run) and grant Team Lead the same
--- default permissions the app used to hardcode via isStaff() — behavior is
--- unchanged out of the box until the Owner adjusts something. Owner gets
--- every permission recorded too (even though isOwner() bypasses the table
--- entirely in code) purely so the Roles panel's checkbox grid reads correctly.
+-- Task approval was removed (tasks go live as soon as they're added; only
+-- roles with create_tasks can add them). Deleting the permission cascades
+-- its role_permissions rows. (Pending tasks are activated below, after the
+-- tasks table.)
+delete from public.permissions where key = 'approve_tasks';
+
+-- System roles (Nov 2026 restructure):
+--   Owner            → owner tier
+--   Senior Team Lead → team_lead tier (was named "Team Lead")
+--   Team Lead        → member tier    (was named "Team Member")
+--   Team Member      → member tier, view-only (no "contribute" permission)
+-- The old "Parent" role is gone. The 'parent' enum value stays in user_role
+-- (Postgres can't drop an enum value) but nothing uses it.
+--
+-- One-time rename for databases seeded before the restructure. Order
+-- matters: "Team Lead" has to be renamed away before "Team Member" can take
+-- its name (role names are unique, case-insensitive).
+do $$ begin
+  if not exists (select 1 from public.roles where is_system and name = 'Senior Team Lead') then
+    update public.roles set name = 'Senior Team Lead' where is_system and name = 'Team Lead' and maps_to = 'team_lead';
+    update public.roles set name = 'Team Lead' where is_system and name = 'Team Member' and maps_to = 'member';
+  end if;
+end $$;
+
 insert into public.roles (name, maps_to, is_system)
-values ('Owner', 'owner', true), ('Team Lead', 'team_lead', true), ('Team Member', 'member', true), ('Parent', 'parent', true)
+values ('Owner', 'owner', true), ('Senior Team Lead', 'team_lead', true), ('Team Lead', 'member', true), ('Team Member', 'member', true)
 on conflict do nothing;
 
+-- Anyone still on the old Parent role becomes a view-only Team Member, then the role goes.
+update public.users u set role = 'member', role_id = (select id from public.roles where is_system and name = 'Team Member')
+where u.role = 'parent' or u.role_id in (select id from public.roles where is_system and name = 'Parent');
+delete from public.roles where is_system and name = 'Parent';
+
+-- Owner gets every permission recorded too (even though isOwner() bypasses
+-- the table entirely in code) purely so the Roles panel's checkbox grid
+-- reads correctly. Senior Team Lead gets the default staff set.
 insert into public.role_permissions (role_id, permission_key)
 select r.id, p.key from public.roles r, public.permissions p
 where r.name = 'Owner' and r.is_system
@@ -150,15 +178,29 @@ on conflict do nothing;
 
 insert into public.role_permissions (role_id, permission_key)
 select r.id, p.key from public.roles r, public.permissions p
-where r.name = 'Team Lead' and r.is_system and p.key not in ('manage_roles', 'delete_clock_sessions')
+where r.name = 'Senior Team Lead' and r.is_system and p.key not in ('manage_roles', 'delete_clock_sessions')
 on conflict do nothing;
+
+-- "contribute" is granted once to every role except the view-only Team
+-- Member — after that it's the Owner's to adjust in the Roles panel, so a
+-- re-run never re-grants it to a role it was removed from.
+do $$ begin
+  if not exists (select 1 from public.role_permissions where permission_key = 'contribute') then
+    insert into public.role_permissions (role_id, permission_key)
+    select r.id, 'contribute' from public.roles r
+    where not (r.is_system and r.name = 'Team Member')
+    on conflict do nothing;
+  end if;
+end $$;
 
 -- Backfill every user's role_id: from their existing custom_role_id if they
 -- had one (Phase 7's scoped-down version), otherwise their matching system
 -- role for their current tier.
 update public.users u set role_id = u.custom_role_id where u.role_id is null and u.custom_role_id is not null;
+-- (Two system roles share the member tier; a tier-only match goes to Team Lead.)
 update public.users u set role_id = r.id from public.roles r
-where r.is_system and r.maps_to = u.role and u.role_id is null;
+where r.is_system and r.maps_to = u.role and u.role_id is null
+  and r.name in ('Owner', 'Senior Team Lead', 'Team Lead');
 
 alter table public.users drop column if exists custom_role_id;
 
@@ -258,6 +300,10 @@ create table if not exists public.tasks (
   description text
 );
 create index if not exists tasks_status_idx on public.tasks (status);
+-- No approval step any more: new tasks are live immediately, and any left
+-- pending from before go live too.
+alter table public.tasks alter column status set default 'active';
+update public.tasks set status = 'active' where status = 'pending';
 alter table public.tasks add column if not exists description text;
 -- project_id was added to the CREATE TABLE above when the Projects tab
 -- replaced the old flat task list, but installs whose tasks table predates
@@ -282,6 +328,65 @@ create table if not exists public.task_assignees (
   primary key (task_id, user_id)
 );
 create index if not exists task_assignees_user_idx on public.task_assignees (user_id);
+
+-- Follow-on stages of a task beyond its own subteam — e.g. a CAD task that
+-- then needs mechanical, electrical, software, and testing. Each stage has
+-- its own deadline and done state. `kind` is a subteam value or 'testing'
+-- (testing isn't a subteam, so this is text + check rather than the enum).
+create table if not exists public.task_stages (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid not null references public.tasks (id) on delete cascade,
+  kind text not null check (kind in ('mechanical', 'electrical', 'cad', 'software', 'outreach', 'marketing', 'testing')),
+  deadline date,
+  completed_at timestamptz,
+  started_by uuid references public.users (id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (task_id, kind)
+);
+create index if not exists task_stages_task_idx on public.task_stages (task_id);
+
+-- A task's own subteam is always its first ("main") stage. This trigger
+-- creates that stage for every new task however it's inserted (Add Task
+-- form, chat assistant, duplicate project), and when a task's subteam is
+-- changed it re-labels the main stage — unless a stage for the new subteam
+-- already exists, in which case that one simply becomes the main stage.
+create or replace function public.sync_task_main_stage() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.task_stages (task_id, kind, deadline, completed_at, started_by)
+    values (
+      new.id, new.subteam::text, new.deadline,
+      case when new.status = 'completed' then now() end,
+      new.created_by
+    )
+    on conflict (task_id, kind) do nothing;
+  elsif new.subteam is distinct from old.subteam then
+    if not exists (
+      select 1 from public.task_stages where task_id = new.id and kind = new.subteam::text
+    ) then
+      update public.task_stages set kind = new.subteam::text
+        where task_id = new.id and kind = old.subteam::text;
+      insert into public.task_stages (task_id, kind, deadline)
+        values (new.id, new.subteam::text, new.deadline)
+        on conflict (task_id, kind) do nothing;
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists tasks_sync_main_stage on public.tasks;
+create trigger tasks_sync_main_stage
+  after insert or update of subteam on public.tasks
+  for each row execute function public.sync_task_main_stage();
+
+-- Backfill: tasks created before stages existed get their main stage now.
+insert into public.task_stages (task_id, kind, deadline, completed_at, started_by)
+select t.id, t.subteam::text, t.deadline,
+       case when t.status = 'completed' then now() end,
+       t.created_by
+from public.tasks t
+on conflict (task_id, kind) do nothing;
 
 -- task_id is nullable: a null task_id is a general "what I've been doing"
 -- status update tied only to a clock session, not any specific task.
@@ -632,6 +737,7 @@ alter table public.task_project_deadline_log enable row level security;
 alter table public.tasks enable row level security;
 alter table public.task_logs enable row level security;
 alter table public.task_assignees enable row level security;
+alter table public.task_stages enable row level security;
 alter table public.events enable row level security;
 alter table public.event_categories enable row level security;
 alter table public.event_roles enable row level security;
@@ -681,6 +787,9 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 do $$ begin
   create policy "read task_assignees" on public.task_assignees for select to authenticated using (true);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy "read task_stages" on public.task_stages for select to authenticated using (true);
 exception when duplicate_object then null; end $$;
 do $$ begin
   create policy "read events" on public.events for select to authenticated using (true);

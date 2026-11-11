@@ -57,11 +57,3 @@ export function isOwner(profile: Pick<UserRow, "role"> | null | undefined) {
   return profile?.role === "owner";
 }
 
-/**
- * Parent accounts only ever see the Events tab — a structural navigation
- * rule, not a permission, so it stays keyed off the tier every role
- * (including custom ones) still maps to.
- */
-export function isParent(profile: Pick<UserRow, "role"> | null | undefined) {
-  return profile?.role === "parent";
-}

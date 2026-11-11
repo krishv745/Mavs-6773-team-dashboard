@@ -199,7 +199,7 @@ export default function EditEventModal({
                   </label>
                 ))}
               </div>
-              <p className="mt-1 text-xs text-ink/40">Team Leads always see every event.</p>
+              <p className="mt-1 text-xs text-ink/40">Senior Team Leads always see every event.</p>
             </div>
 
             <RichTextField name="info" label="Info" rows={3} defaultValue={initial.info ?? ""} />

@@ -18,25 +18,17 @@ const MEMBER_TABS = [
   { href: "/team/log", label: "Logs" },
 ];
 
-const PARENT_TABS = [{ href: "/team/events", label: "Events" }];
-
 export default function AppHeader({ profile }: { profile: Profile }) {
   const pathname = usePathname();
 
-  const isParent = profile.role === "parent";
   const canSeeAdmin =
-    hasPermission(profile, "approve_tasks") ||
     hasPermission(profile, "view_admin_hours") ||
     hasPermission(profile, "manage_members") ||
     hasPermission(profile, "manage_roles") ||
     hasPermission(profile, "manage_events");
-  const tabs = isParent
-    ? PARENT_TABS
-    : canSeeAdmin
-      ? [...MEMBER_TABS, { href: "/team/admin", label: "Admin" }]
-      : MEMBER_TABS;
+  const tabs = canSeeAdmin ? [...MEMBER_TABS, { href: "/team/admin", label: "Admin" }] : MEMBER_TABS;
 
-  const homeHref = isParent ? "/team/events" : "/team/projects";
+  const homeHref = "/team/projects";
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-surface">
@@ -53,7 +45,7 @@ export default function AppHeader({ profile }: { profile: Profile }) {
           <Link href="/team/profile" title="Your profile" className="flex-none">
             <Avatar name={profile.name} avatarUrl={profile.avatar_url} size="xs" />
           </Link>
-          {!isParent && <ChatPanel />}
+          <ChatPanel />
         </div>
 
         <nav className="flex flex-1 items-center justify-center gap-1 overflow-x-auto">

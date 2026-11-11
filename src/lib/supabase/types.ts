@@ -6,6 +6,8 @@ export type Subteam =
   | "software"
   | "outreach"
   | "marketing";
+/** A task stage: any subteam, or "testing" (which isn't a subteam). */
+export type TaskStageKind = Subteam | "testing";
 export type TaskStatus = "pending" | "active" | "completed" | "archived";
 export type TaskPriority = "low" | "medium" | "high";
 export type VolunteerType = "parent" | "student";
@@ -275,6 +277,29 @@ export type Database = {
         Update: Partial<{
           task_id: string;
           user_id: string;
+        }>;
+        Relationships: [];
+      };
+      task_stages: {
+        Row: {
+          id: string;
+          task_id: string;
+          kind: TaskStageKind;
+          deadline: string | null;
+          completed_at: string | null;
+          started_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          task_id: string;
+          kind: TaskStageKind;
+          deadline?: string | null;
+          completed_at?: string | null;
+          started_by?: string | null;
+        };
+        Update: Partial<{
+          deadline: string | null;
+          completed_at: string | null;
         }>;
         Relationships: [];
       };
@@ -815,6 +840,7 @@ export type TaskProjectDeadlineLogRow = Database["public"]["Tables"]["task_proje
 export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
 export type TaskLogRow = Database["public"]["Tables"]["task_logs"]["Row"];
 export type TaskAssigneeRow = Database["public"]["Tables"]["task_assignees"]["Row"];
+export type TaskStageRow = Database["public"]["Tables"]["task_stages"]["Row"];
 export type EventRow = Database["public"]["Tables"]["events"]["Row"];
 export type EventCategoryRow = Database["public"]["Tables"]["event_categories"]["Row"];
 export type EventRoleRow = Database["public"]["Tables"]["event_roles"]["Row"];

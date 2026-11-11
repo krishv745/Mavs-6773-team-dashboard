@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { addMemberAction } from "@/lib/admin/actions";
 import PasswordField from "@/components/team/PasswordField";
 import SubmitButton from "@/components/team/SubmitButton";
+import { NEW_MEMBER_ROLE_CHOICES } from "@/lib/roles";
 
 export default function AddMemberModal({ canAssignTeamLead }: { canAssignTeamLead: boolean }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -77,14 +78,14 @@ export default function AddMemberModal({ canAssignTeamLead }: { canAssignTeamLea
               <select
                 id="m-role"
                 name="role"
-                defaultValue="member"
+                defaultValue="viewer"
                 className="mt-1.5 w-full rounded-md border border-hairline-strong bg-surface px-3 py-2.5 text-sm outline-none focus:border-navy focus:ring-2 focus:ring-navy/10"
               >
-                <option value="member">Team member — full app access</option>
-                <option value="parent">Parent — Events tab only</option>
-                {canAssignTeamLead && (
-                  <option value="team_lead">Team Lead — Admin Dashboard access</option>
-                )}
+                {NEW_MEMBER_ROLE_CHOICES.filter((c) => c.tier !== "team_lead" || canAssignTeamLead).map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
               </select>
             </div>
 

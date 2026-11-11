@@ -1,4 +1,4 @@
-import type { Subteam } from "@/lib/supabase/types";
+import type { Subteam, TaskStageKind } from "@/lib/supabase/types";
 
 export const SUBTEAMS: { value: Subteam; label: string }[] = [
   { value: "mechanical", label: "Mechanical" },
@@ -25,4 +25,21 @@ export function subteamLabel(value: Subteam) {
 
 export function isSubteam(value: unknown): value is Subteam {
   return typeof value === "string" && SUBTEAMS.some((s) => s.value === value);
+}
+
+/** Stages a task can move through after its own subteam: every subteam, plus Testing. */
+export const STAGE_KINDS: { value: TaskStageKind; label: string }[] = [
+  ...SUBTEAMS,
+  { value: "testing", label: "Testing" },
+];
+
+/** Compact stage labels for tight spaces (calendar cells). */
+export const STAGE_SHORT: Record<TaskStageKind, string> = { ...SUBTEAM_SHORT, testing: "Test" };
+
+export function stageLabel(value: TaskStageKind) {
+  return STAGE_KINDS.find((s) => s.value === value)?.label ?? value;
+}
+
+export function isStageKind(value: unknown): value is TaskStageKind {
+  return typeof value === "string" && STAGE_KINDS.some((s) => s.value === value);
 }

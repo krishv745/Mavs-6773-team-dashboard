@@ -19,6 +19,7 @@ export default async function BuildPage({
   const { missingLink, missingLocation, missingCost, missingImage } = await searchParams;
   const [profile, supabase] = await Promise.all([getCurrentProfile(), createServerClient()]);
   const staff = hasPermission(profile, "manage_parts");
+  const canContribute = hasPermission(profile, "contribute");
 
   const [{ data: parts }, { data: projects }, { data: allocations }] = await Promise.all([
     supabase.from("parts").select("*").order("name", { ascending: true }),
@@ -142,8 +143,8 @@ export default async function BuildPage({
               Receive order
             </Link>
           )}
-          <ReallocateModal parts={parts ?? []} projects={projects ?? []} />
-          <AddPartModal locations={locations} />
+          {canContribute && <ReallocateModal parts={parts ?? []} projects={projects ?? []} />}
+          {canContribute && <AddPartModal locations={locations} />}
         </div>
       </div>
 
@@ -163,6 +164,7 @@ export default async function BuildPage({
           locations={locations}
           emptyMessage={activeFilter ? activeFilter.emptyMessage : "No parts yet — add your first one."}
           canManageParts={staff}
+          canContribute={canContribute}
         />
       </div>
     </div>

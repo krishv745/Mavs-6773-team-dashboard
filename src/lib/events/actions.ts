@@ -230,6 +230,7 @@ export async function volunteerAction(
 
   const profile = await getCurrentProfile();
   if (!profile) return { error: "Your session expired. Log in again." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
 
   const supabase = await createServerClient();
   const {
@@ -283,6 +284,7 @@ export async function cancelVolunteerRegistrationAction(
 
   const profile = await getCurrentProfile();
   if (!profile) return { error: "Your session expired. Log in again." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
 
   const admin = createAdminClient();
   const { data: volunteer } = await admin

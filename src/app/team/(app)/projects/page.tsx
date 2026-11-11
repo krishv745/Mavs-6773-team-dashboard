@@ -6,16 +6,22 @@ import { buildBoardData, type BoardSort } from "@/lib/projects/board";
 import AddProjectModal from "@/components/team/AddProjectModal";
 import ProjectJumpPicker from "@/components/team/ProjectJumpPicker";
 import ProjectsBoardView from "@/components/team/ProjectsBoardView";
+import TaskCalendar, { type CalendarItem } from "@/components/team/TaskCalendar";
+import { DEFAULT_PROJECT_COLOR } from "@/lib/projectColors";
+import { STAGE_SHORT, stageLabel } from "@/lib/subteams";
 import type { TaskProjectRow } from "@/lib/supabase/types";
 
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string; task?: string; sort?: string }>;
+  searchParams: Promise<{ project?: string; task?: string; sort?: string; view?: string }>;
 }) {
-  const { project: focusProjectId, task: focusTaskId, sort: sortParam } = await searchParams;
+  const { project: focusProjectId, task: focusTaskId, sort: sortParam, view } = await searchParams;
   const sort: BoardSort = sortParam === "timeline" ? "timeline" : "priority";
+  const calendarView = view === "calendar";
   const [profile, supabase] = await Promise.all([getCurrentProfile(), createServerClient()]);
+  const canContribute = hasPermission(profile, "contribute");
+  const canCreateTasks = hasPermission(profile, "create_tasks");
   const canEditTasks = hasPermission(profile, "edit_tasks");
   const canDeleteTasks = hasPermission(profile, "delete_tasks");
   const canEditProjects = hasPermission(profile, "edit_projects");
@@ -28,7 +34,7 @@ export default async function ProjectsPage({
   ]);
 
   const visibleTasks = tasks ?? [];
-  const { tasksByProject, assigneesByTask, logsByTask } = await buildBoardData(supabase, visibleTasks, sort);
+  const { tasksByProject, assigneesByTask, logsByTask, stagesByTask } = await buildBoardData(supabase, visibleTasks, sort);
 
   // Highest priority first, completed projects sink to the bottom.
   const rank = (p: TaskProjectRow) => PRIORITY_RANK[p.priority] ?? 1;
@@ -54,6 +60,67 @@ export default async function ProjectsPage({
     const q = params.toString();
     return `/team/projects${q ? `?${q}` : ""}`;
   };
+  const calendarToggleHref = (() => {
+    const params = new URLSearchParams();
+    if (focusProjectId) params.set("project", focusProjectId);
+    if (sort === "timeline") params.set("sort", "timeline");
+    if (!calendarView) params.set("view", "calendar");
+    const q = params.toString();
+    return `/team/projects${q ? `?${q}` : ""}`;
+  })();
+
+  // Calendar view: every stage deadline of every non-archived task, plus each
+  // project's own deadline, limited to the focused project if there is one.
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+  const calendarItems: CalendarItem[] = [];
+  if (calendarView) {
+    for (const project of sortedProjects) {
+      const color = project.color ?? DEFAULT_PROJECT_COLOR;
+      if (project.deadline && !project.ongoing) {
+        calendarItems.push({
+          id: `project-${project.id}`,
+          date: project.deadline,
+          title: project.name,
+          tag: "Project deadline",
+          shortTag: "Project",
+          color,
+          href: `/team/projects?project=${project.id}`,
+          done: Boolean(project.completed_at),
+          isProject: true,
+        });
+      }
+      for (const task of tasksByProject.get(project.id) ?? []) {
+        if (task.status === "archived") continue;
+        const stages = stagesByTask.get(task.id) ?? [];
+        const taskDone = task.status === "completed";
+        if (stages.length === 0 && task.deadline && !task.ongoing) {
+          calendarItems.push({
+            id: `task-${task.id}`,
+            date: task.deadline,
+            title: task.title,
+            tag: stageLabel(task.subteam),
+            shortTag: STAGE_SHORT[task.subteam],
+            color,
+            href: `/team/projects?task=${task.id}`,
+            done: taskDone,
+          });
+        }
+        for (const st of stages) {
+          if (!st.deadline) continue;
+          calendarItems.push({
+            id: `stage-${st.id}`,
+            date: st.deadline,
+            title: task.title,
+            tag: stageLabel(st.kind),
+            shortTag: STAGE_SHORT[st.kind],
+            color,
+            href: `/team/projects?task=${task.id}`,
+            done: taskDone || Boolean(st.completed_at),
+          });
+        }
+      }
+    }
+  }
 
   return (
     <div>
@@ -72,11 +139,28 @@ export default async function ProjectsPage({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={calendarToggleHref}
+            title={calendarView ? "Back to list view" : "Calendar view"}
+            aria-label={calendarView ? "Back to list view" : "Calendar view"}
+            aria-pressed={calendarView}
+            className={`flex h-8 w-8 items-center justify-center rounded-md border transition ${
+              calendarView
+                ? "border-navy bg-navy text-white"
+                : "border-hairline-strong bg-surface text-ink/60 hover:bg-tint hover:text-ink"
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4.5" width="18" height="16.5" rx="2" />
+              <path d="M3 9.5h18M8 2.5v4M16 2.5v4" strokeLinecap="round" />
+            </svg>
+          </Link>
+          {/* Always visible — from the calendar, either one switches back to the list sorted that way. */}
           <div className="flex rounded-md border border-hairline-strong bg-surface p-0.5 text-sm">
             <Link
               href={sortHref("priority")}
               className={`rounded px-2.5 py-1 font-medium transition ${
-                sort === "priority" ? "bg-navy text-white" : "text-ink/60 hover:bg-tint"
+                !calendarView && sort === "priority" ? "bg-navy text-white" : "text-ink/60 hover:bg-tint"
               }`}
             >
               By priority
@@ -84,7 +168,7 @@ export default async function ProjectsPage({
             <Link
               href={sortHref("timeline")}
               className={`rounded px-2.5 py-1 font-medium transition ${
-                sort === "timeline" ? "bg-navy text-white" : "text-ink/60 hover:bg-tint"
+                !calendarView && sort === "timeline" ? "bg-navy text-white" : "text-ink/60 hover:bg-tint"
               }`}
             >
               By timeline
@@ -104,7 +188,7 @@ export default async function ProjectsPage({
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((p) => ({ id: p.id, name: p.name }))}
           />
-          <AddProjectModal variant="button" />
+          {canCreateTasks && <AddProjectModal variant="button" />}
         </div>
       </div>
 
@@ -113,14 +197,19 @@ export default async function ProjectsPage({
           <div className="rounded-xl border border-dashed border-hairline-strong bg-surface/60 p-10 text-center text-sm text-ink/50">
             No projects yet — use “Add project” above.
           </div>
+        ) : calendarView ? (
+          <TaskCalendar items={calendarItems} today={today} />
         ) : (
           <ProjectsBoardView
             projects={sortedProjects}
             tasksByProject={tasksByProject}
             assigneesByTask={assigneesByTask}
             logsByTask={logsByTask}
+            stagesByTask={stagesByTask}
             members={members ?? []}
             focusTaskId={focusTaskId}
+            canContribute={canContribute}
+            canCreateTasks={canCreateTasks}
             canEditTasks={canEditTasks}
             canDeleteTasks={canDeleteTasks}
             canEditProjects={canEditProjects}

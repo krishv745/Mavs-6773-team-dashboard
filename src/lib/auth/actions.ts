@@ -48,7 +48,7 @@ export async function logInAction(
   const result = await signIn(authUser.user.email, password);
   if (result?.error) return result;
 
-  redirect(profile.role === "parent" ? "/team/events" : "/team/projects");
+  redirect("/team/projects");
 }
 
 export async function setNewPasswordAction(
@@ -117,7 +117,7 @@ export async function requestPasswordResetAction(
   if (email.endsWith(PLACEHOLDER_EMAIL_DOMAIN)) {
     return {
       info:
-        "Your account was created by a Team Lead and doesn't have an email on file. Ask a Team Lead or the Owner to reset your password from the Admin Dashboard.",
+        "Your account was created by a Senior Team Lead and doesn't have an email on file. Ask a Senior Team Lead or the Owner to reset your password from the Admin Dashboard.",
     };
   }
 

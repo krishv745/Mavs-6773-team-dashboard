@@ -2,7 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createTaskAction, addTaskLogFromDashboardAction } from "@/lib/tasks/actions";
 import { createEventAction } from "@/lib/events/actions";
@@ -262,6 +262,7 @@ Rules:
 export async function confirmChatActionAction(action: ProposedAction): Promise<{ error?: string }> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
 
   if (action.type === "create_task") {
     const fd = new FormData();

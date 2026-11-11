@@ -61,7 +61,7 @@ function EditPermissionsDialog({
         <h3 className="font-display text-lg font-bold text-ink">{role.name} permissions</h3>
         <p className="mt-1 text-xs text-ink/50">
           Maps to {roleLabel(role.maps_to)} for the handful of things that aren&rsquo;t permission-based
-          (parent-only navigation, event visibility, etc).
+          (event visibility, who can grant it, etc). Leave &ldquo;Contribute&rdquo; off to make the role view-only.
         </p>
 
         <div className="mt-4 max-h-80 space-y-2.5 overflow-y-auto pr-1">
@@ -203,7 +203,6 @@ export default function RolesPanel({
           >
             <option value="member">{roleLabel("member")}</option>
             <option value="team_lead">{roleLabel("team_lead")}</option>
-            <option value="parent">{roleLabel("parent")}</option>
           </select>
         </div>
         <CreateRoleButton />

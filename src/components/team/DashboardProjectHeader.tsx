@@ -34,11 +34,13 @@ type ProjectSummary = {
 export default function DashboardProjectHeader({
   project,
   members,
+  canCreateTasks,
   canEditProjects,
   canDeleteProjects,
 }: {
   project: ProjectSummary;
   members: SelectableMember[];
+  canCreateTasks: boolean;
   canEditProjects: boolean;
   canDeleteProjects: boolean;
 }) {
@@ -112,7 +114,7 @@ export default function DashboardProjectHeader({
 
         <div className="flex flex-none flex-wrap items-center gap-2">
           {canEditProjects && <CompleteProjectButton projectId={project.id} completed={completed} />}
-          <AddTaskModal projectId={project.id} members={members} />
+          {canCreateTasks && <AddTaskModal projectId={project.id} members={members} />}
           {canEditProjects && (
             <button
               type="button"

@@ -59,21 +59,23 @@ body {
  * button fill under white text; --color-crimson-bright (hover state) is
  * bumped further so hover remains visibly distinct from the resting gold.
  *
- * --color-tint is exactly Mavs Black (#43484d), the required dark-mode
- * page background; --color-surface is a step lighter for elevated cards.
+ * The page background (--color-tint) is true black; --color-surface is a
+ * near-black step up for cards/panels so they still read as raised, and
+ * --color-tint-deep sits between the two for subtle fills. Hairlines are a
+ * touch stronger than on a grey background so borders stay visible on black.
  */
 .dark {
   color-scheme: dark;
-  --color-surface: #4f555c;
-  --color-ink: #e8e9e4;
-  --color-tint: #43484d;
-  --color-tint-deep: #383c40;
+  --color-surface: #121212;
+  --color-ink: #ececea;
+  --color-tint: #000000;
+  --color-tint-deep: #1c1c1c;
   --color-navy: #8aae4a;
   --color-crimson: #d9924b;
   --color-crimson-bright: #e9a868;
-  --color-hairline: rgb(255 255 255 / 0.08);
-  --color-hairline-strong: rgb(255 255 255 / 0.14);
-  --color-hairline-strongest: rgb(255 255 255 / 0.24);
+  --color-hairline: rgb(255 255 255 / 0.1);
+  --color-hairline-strong: rgb(255 255 255 / 0.17);
+  --color-hairline-strongest: rgb(255 255 255 / 0.28);
 }
 
 /* Tailwind v4's reset zeroes dialog margins, which kills the browser's

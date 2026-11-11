@@ -47,12 +47,15 @@ export default function PartsTable({
   locations,
   emptyMessage,
   canManageParts,
+  canContribute = true,
 }: {
   parts: PartRow[];
   allocByPart: Record<string, { project: string; qty: number }[]>;
   locations: string[];
   emptyMessage: string;
   canManageParts: boolean;
+  /** false for view-only roles — hides Edit. */
+  canContribute?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
@@ -184,7 +187,7 @@ export default function PartsTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <EditPartModal part={part} locations={locations} />
+                    {canContribute && <EditPartModal part={part} locations={locations} />}
                     {canManageParts && <RemovePartButton partId={part.id} name={part.name} />}
                   </div>
                 </td>

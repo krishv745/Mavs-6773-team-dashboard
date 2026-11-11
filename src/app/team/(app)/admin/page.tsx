@@ -3,33 +3,28 @@ import { redirect } from "next/navigation";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, hasPermission } from "@/lib/auth/session";
-import { approveTaskAction, rejectTaskAction } from "@/lib/tasks/actions";
-import { subteamLabel } from "@/lib/subteams";
 import AddMemberModal from "@/components/team/AddMemberModal";
 import MembersTable, { type MemberRow } from "@/components/team/MembersTable";
 import RolesPanel from "@/components/team/RolesPanel";
 
 export default async function AdminDashboardPage() {
   const profile = await getCurrentProfile();
-  const canApproveTasks = hasPermission(profile, "approve_tasks");
   const canViewHours = hasPermission(profile, "view_admin_hours");
   const canManageMembers = hasPermission(profile, "manage_members");
   const canManageRoles = hasPermission(profile, "manage_roles");
   const canManageEvents = hasPermission(profile, "manage_events");
-  if (!canApproveTasks && !canViewHours && !canManageMembers && !canManageRoles && !canManageEvents) {
+  if (!canViewHours && !canManageMembers && !canManageRoles && !canManageEvents) {
     redirect("/team/projects");
   }
 
   const supabase = await createServerClient();
 
   const [
-    { data: pendingTasks },
     { data: users },
     { data: volunteers },
     { data: customRoles },
     { data: rolePermissionRows },
   ] = await Promise.all([
-    supabase.from("tasks").select("*").eq("status", "pending").order("created_at", { ascending: false }),
     supabase.from("users").select("*").order("name", { ascending: true }),
     supabase
       .from("event_volunteers")
@@ -61,20 +56,6 @@ export default async function AdminDashboardPage() {
     : { data: [] };
   const roleNameById = new Map((volunteerRoles ?? []).map((r) => [r.id, r.name]));
 
-  const creatorIds = [...new Set((pendingTasks ?? []).map((t) => t.created_by).filter((id): id is string => Boolean(id)))];
-  const { data: creators } = creatorIds.length
-    ? await supabase.from("users").select("id, name").in("id", creatorIds)
-    : { data: [] };
-  const creatorMap = new Map((creators ?? []).map((c) => [c.id, c.name]));
-
-  const pendingProjectIds = [
-    ...new Set((pendingTasks ?? []).map((t) => t.project_id).filter((id): id is string => Boolean(id))),
-  ];
-  const { data: pendingProjects } = pendingProjectIds.length
-    ? await supabase.from("task_projects").select("id, name").in("id", pendingProjectIds)
-    : { data: [] };
-  const pendingProjectName = new Map((pendingProjects ?? []).map((p) => [p.id, p.name]));
-
   // Email lives on auth.users, not public.users — needs the service-role client.
   const admin = createAdminClient();
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
@@ -101,48 +82,6 @@ export default async function AdminDashboardPage() {
           Activity Report →
         </Link>
       </div>
-
-      {/* Pending approvals */}
-      {canApproveTasks && (
-        <section className="mt-8">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-ink/40">
-            Pending task approvals ({(pendingTasks ?? []).length})
-          </h2>
-          {(pendingTasks ?? []).length === 0 ? (
-            <p className="mt-3 text-sm text-ink/50">Nothing waiting on you.</p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {(pendingTasks ?? []).map((task) => (
-                <li
-                  key={task.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-surface p-4"
-                >
-                  <div>
-                    <p className="font-medium text-ink">{task.title}</p>
-                    <p className="text-xs text-ink/50">
-                      {(task.project_id && pendingProjectName.get(task.project_id)) ?? "No project"} ·{" "}
-                      {subteamLabel(task.subteam)} · submitted by{" "}
-                      {(task.created_by && creatorMap.get(task.created_by)) ?? "a member"}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <form action={approveTaskAction.bind(null, task.id)}>
-                      <button className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy/90">
-                        Approve
-                      </button>
-                    </form>
-                    <form action={rejectTaskAction.bind(null, task.id)}>
-                      <button className="rounded-md border border-hairline-strong px-3 py-1.5 text-xs font-semibold text-ink/60 hover:bg-tint">
-                        Reject
-                      </button>
-                    </form>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
 
       {/* Members */}
       {(canViewHours || canManageMembers) && (
