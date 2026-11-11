@@ -589,7 +589,7 @@ export async function addTaskLogFromDashboardAction(
 ): Promise<{ error?: string; ok?: boolean }> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
-  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
+  if (!hasPermission(profile, "add_logs")) return { error: "Your role can't add work logs." };
 
   const taskId = String(formData.get("taskId") ?? "");
   const description = String(formData.get("description") ?? "").trim() || null;

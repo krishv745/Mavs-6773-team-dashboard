@@ -183,7 +183,7 @@ export async function backfillPartCostsAction(): Promise<{ checked: number; upda
 export async function createPartAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
-  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role can't make this change. Ask a Senior Team Lead if you need it done." };
 
   const name = String(formData.get("name") ?? "").trim();
   const partNumber = String(formData.get("partNumber") ?? "").trim() || null;
@@ -245,7 +245,7 @@ export async function createUnassignedPartAction({
 }): Promise<QuickAddPartResult> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
-  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role can't make this change. Ask a Senior Team Lead if you need it done." };
 
   const trimmedName = name.trim();
   if (!trimmedName) return { error: "Part name is required." };
@@ -273,7 +273,7 @@ export async function createUnassignedPartAction({
 export async function updatePartAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You must be signed in." };
-  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role can't make this change. Ask a Senior Team Lead if you need it done." };
 
   const partId = String(formData.get("partId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
@@ -325,7 +325,7 @@ export async function createProjectAction(
   name: string,
 ): Promise<{ id?: string; name?: string; error?: string }> {
   const profile = await getCurrentProfile();
-  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role can't make this change. Ask a Senior Team Lead if you need it done." };
   const trimmed = name.trim();
   if (!trimmed) return { error: "Project name is required." };
 
@@ -414,7 +414,7 @@ export async function deleteBuildProjectAction(
 
 export async function reallocateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const profile = await getCurrentProfile();
-  if (!hasPermission(profile, "contribute")) return { error: "Your role is view-only. Ask a Senior Team Lead if you need to make changes." };
+  if (!hasPermission(profile, "contribute")) return { error: "Your role can't make this change. Ask a Senior Team Lead if you need it done." };
   const partId = String(formData.get("partId") ?? "");
   const fromProjectId = String(formData.get("fromProjectId") ?? "") || null;
   const toProjectId = String(formData.get("toProjectId") ?? "");

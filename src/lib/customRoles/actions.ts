@@ -41,7 +41,7 @@ export async function createCustomRoleAction(
     .single();
   if (error || !role) return { error: error?.message ?? "Could not create role." };
 
-  // Two system roles share the member tier (Team Lead and the view-only
+  // Two system roles share the member tier (Team Lead and the logs-only
   // Team Member) — a new custom role starts from the tier's default one.
   const { data: startingTier } = await admin
     .from("roles")

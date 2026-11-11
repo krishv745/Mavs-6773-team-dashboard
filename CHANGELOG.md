@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-11 — Team Members can add work logs
+
+- New **"Add work logs"** permission (`add_logs`), granted to every role. It's the **only** permission the Team Member role has.
+- It covers all three ways to log: the task "Add a log" button, the AI chat assistant's log action, and Google Chat `/debrief`.
+- **"Contribute"** no longer includes logging. It now covers volunteering, adding/editing parts, creating Build projects, and moving stock.
+- The chat assistant no longer has a blanket "contribute" check. Each proposed change is checked by the action that carries it out (tasks need `create_tasks`, events `manage_events`, parts `contribute`, logs `add_logs`).
+- Wording: "view-only" messages now say "Your role can't make this change". The Add Member option reads "Team Member — can only add work logs".
+- The live database already has the permission granted. `supabase/schema.sql` matches.
+
 ## 2026-11-11 — Google Chat `/debrief` app
 
 - New Google Chat app: typing **`/debrief`** in a space opens a form (Project → Task → "What did you work on?"). **Post** saves the update as a work log on that task and posts it to the space.

@@ -50,7 +50,7 @@ export default function DashboardTaskRow({
   stages = [],
   members,
   autoExpand = false,
-  canContribute = true,
+  canAddLogs = true,
   canEditTasks,
   canDeleteTasks,
 }: {
@@ -61,8 +61,8 @@ export default function DashboardTaskRow({
   members: SelectableMember[];
   /** Start expanded and scroll into view — used when arriving from My Tasks. */
   autoExpand?: boolean;
-  /** false for view-only roles — hides "Add a log". */
-  canContribute?: boolean;
+  /** Shows the "Add a log" button. */
+  canAddLogs?: boolean;
   canEditTasks: boolean;
   canDeleteTasks: boolean;
 }) {
@@ -134,7 +134,7 @@ export default function DashboardTaskRow({
         </div>
 
         <div className="mt-2 flex min-w-0 justify-start md:mt-0">
-          {!archived && canContribute && <TaskLogComposer taskId={task.id} variant="cell" />}
+          {!archived && canAddLogs && <TaskLogComposer taskId={task.id} variant="cell" />}
         </div>
 
         <div className="mt-2 flex min-w-0 items-center gap-1.5 md:mt-0">

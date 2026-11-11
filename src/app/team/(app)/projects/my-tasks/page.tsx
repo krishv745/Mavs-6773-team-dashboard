@@ -18,7 +18,7 @@ export default async function MyTasksPage({
 
   const [profile, supabase] = await Promise.all([getCurrentProfile(), createServerClient()]);
   if (!profile) redirect("/team/login");
-  const canContribute = hasPermission(profile, "contribute");
+  const canAddLogs = hasPermission(profile, "add_logs");
   const canCreateTasks = hasPermission(profile, "create_tasks");
   const canEditTasks = hasPermission(profile, "edit_tasks");
   const canDeleteTasks = hasPermission(profile, "delete_tasks");
@@ -123,7 +123,7 @@ export default async function MyTasksPage({
             logsByTask={logsByTask}
             stagesByTask={stagesByTask}
             members={members ?? []}
-            canContribute={canContribute}
+            canAddLogs={canAddLogs}
             canCreateTasks={canCreateTasks}
             canEditTasks={canEditTasks}
             canDeleteTasks={canDeleteTasks}

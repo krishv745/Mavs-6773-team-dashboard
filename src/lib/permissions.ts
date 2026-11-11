@@ -12,10 +12,14 @@
  */
 export const PERMISSIONS = [
   {
+    key: "add_logs",
+    label: "Add work logs",
+    description: "Post work logs on tasks (on the dashboard, via the chat assistant, or with Google Chat /debrief)",
+  },
+  {
     key: "contribute",
     label: "Contribute",
-    description:
-      "Submit tasks and projects, add work logs, sign up to volunteer, add/edit parts and move stock. Without this a role is view-only",
+    description: "Sign up to volunteer, add/edit parts, create Build projects, and move stock",
   },
   {
     key: "create_tasks",

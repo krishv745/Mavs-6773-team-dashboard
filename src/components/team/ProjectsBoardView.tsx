@@ -32,7 +32,7 @@ export default function ProjectsBoardView({
   stagesByTask,
   members,
   focusTaskId,
-  canContribute,
+  canAddLogs,
   canCreateTasks,
   canEditTasks,
   canDeleteTasks,
@@ -47,8 +47,8 @@ export default function ProjectsBoardView({
   members: SelectableMember[];
   /** Task to auto-expand and scroll to (from My Tasks). */
   focusTaskId?: string;
-  /** false for view-only roles — hides Add Task / Add a log. */
-  canContribute: boolean;
+  /** Shows each task's "Add a log" button. */
+  canAddLogs: boolean;
   /** Add Task button on each project — Senior Team Leads / Owner by default. */
   canCreateTasks: boolean;
   canEditTasks: boolean;
@@ -235,7 +235,7 @@ export default function ProjectsBoardView({
                           stages={stagesByTask.get(task.id) ?? []}
                           members={members}
                           autoExpand={task.id === focusTaskId}
-                          canContribute={canContribute}
+                          canAddLogs={canAddLogs}
                           canEditTasks={canEditTasks}
                           canDeleteTasks={canDeleteTasks}
                         />

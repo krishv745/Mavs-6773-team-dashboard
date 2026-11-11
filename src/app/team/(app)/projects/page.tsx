@@ -20,7 +20,7 @@ export default async function ProjectsPage({
   const sort: BoardSort = sortParam === "timeline" ? "timeline" : "priority";
   const calendarView = view === "calendar";
   const [profile, supabase] = await Promise.all([getCurrentProfile(), createServerClient()]);
-  const canContribute = hasPermission(profile, "contribute");
+  const canAddLogs = hasPermission(profile, "add_logs");
   const canCreateTasks = hasPermission(profile, "create_tasks");
   const canEditTasks = hasPermission(profile, "edit_tasks");
   const canDeleteTasks = hasPermission(profile, "delete_tasks");
@@ -208,7 +208,7 @@ export default async function ProjectsPage({
             stagesByTask={stagesByTask}
             members={members ?? []}
             focusTaskId={focusTaskId}
-            canContribute={canContribute}
+            canAddLogs={canAddLogs}
             canCreateTasks={canCreateTasks}
             canEditTasks={canEditTasks}
             canDeleteTasks={canDeleteTasks}

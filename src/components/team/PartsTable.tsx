@@ -54,7 +54,7 @@ export default function PartsTable({
   locations: string[];
   emptyMessage: string;
   canManageParts: boolean;
-  /** false for view-only roles — hides Edit. */
+  /** Requires the "contribute" permission — hides Edit. */
   canContribute?: boolean;
 }) {
   const [search, setSearch] = useState("");

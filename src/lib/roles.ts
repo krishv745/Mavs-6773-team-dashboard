@@ -4,7 +4,7 @@ import type { UserRole } from "@/lib/supabase/types";
  * System role names. Each role maps to one of the fixed tiers in
  * users.role (owner / team_lead / member) — two system roles share the
  * member tier: "Team Lead" (full member access) and "Team Member"
- * (view-only, because it lacks the `contribute` permission).
+ * (can only add work logs — its one permission is `add_logs`).
  */
 export const SYSTEM_ROLE_NAMES = {
   owner: "Owner",
@@ -25,7 +25,7 @@ export const DEFAULT_SYSTEM_ROLE_FOR_TIER: Partial<Record<UserRole, string>> = {
  * which resolves it to a tier + system role.
  */
 export const NEW_MEMBER_ROLE_CHOICES = [
-  { value: "viewer", label: "Team Member — view only", tier: "member", roleName: SYSTEM_ROLE_NAMES.teamMember },
+  { value: "viewer", label: "Team Member — can only add work logs", tier: "member", roleName: SYSTEM_ROLE_NAMES.teamMember },
   { value: "member", label: "Team Lead — full app access", tier: "member", roleName: SYSTEM_ROLE_NAMES.teamLead },
   {
     value: "team_lead",
@@ -43,7 +43,7 @@ export const EVENT_VISIBILITY_ROLES: { value: UserRole; label: string }[] = [
 
 /**
  * Label for a tier. Prefer the user's actual role name (roles.name) where
- * it's available — the member tier covers both Team Lead and the view-only
+ * it's available — the member tier covers both Team Lead and the logs-only
  * Team Member role.
  */
 export function roleLabel(role: UserRole) {

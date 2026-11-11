@@ -120,7 +120,8 @@ alter table public.users add column if not exists role_id uuid references public
 -- Seed the fixed permission catalog (see src/lib/permissions.ts — the two
 -- must be kept in sync by hand; there's no generator).
 insert into public.permissions (key, label, description) values
-  ('contribute', 'Contribute', 'Submit tasks and projects, add work logs, sign up to volunteer, add/edit parts and move stock. Without this a role is view-only'),
+  ('add_logs', 'Add work logs', 'Post work logs on tasks (on the dashboard, via the chat assistant, or with Google Chat /debrief)'),
+  ('contribute', 'Contribute', 'Sign up to volunteer, add/edit parts, create Build projects, and move stock'),
   ('create_tasks', 'Add tasks & projects', 'Create new projects on the Projects tab and add tasks to them'),
   ('edit_tasks', 'Edit tasks', 'Edit, archive/unarchive tasks, and change who''s assigned'),
   ('delete_tasks', 'Delete tasks', 'Permanently delete a task and its log entries'),
@@ -145,7 +146,7 @@ delete from public.permissions where key = 'approve_tasks';
 --   Owner            → owner tier
 --   Senior Team Lead → team_lead tier (was named "Team Lead")
 --   Team Lead        → member tier    (was named "Team Member")
---   Team Member      → member tier, view-only (no "contribute" permission)
+--   Team Member      → member tier; can only add work logs ("add_logs")
 -- The old "Parent" role is gone. The 'parent' enum value stays in user_role
 -- (Postgres can't drop an enum value) but nothing uses it.
 --
@@ -189,6 +190,16 @@ do $$ begin
     insert into public.role_permissions (role_id, permission_key)
     select r.id, 'contribute' from public.roles r
     where not (r.is_system and r.name = 'Team Member')
+    on conflict do nothing;
+  end if;
+end $$;
+
+-- "add_logs" is granted once to every role, including Team Member (whose
+-- only permission it is). Same one-time rule as "contribute" above.
+do $$ begin
+  if not exists (select 1 from public.role_permissions where permission_key = 'add_logs') then
+    insert into public.role_permissions (role_id, permission_key)
+    select r.id, 'add_logs' from public.roles r
     on conflict do nothing;
   end if;
 end $$;

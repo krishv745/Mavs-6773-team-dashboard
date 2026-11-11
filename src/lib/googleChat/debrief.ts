@@ -47,7 +47,7 @@ function isAllowed(email: string) {
 }
 
 /** The dashboard account for this email, or why there isn't a usable one. */
-async function findProfileByEmail(email: string): Promise<Profile | "no_account" | "view_only"> {
+async function findProfileByEmail(email: string): Promise<Profile | "no_account" | "cant_log"> {
   const admin = createAdminClient();
   // Emails live on auth.users, not public.users. The team is small enough
   // that one page of users covers everyone.
@@ -60,17 +60,17 @@ async function findProfileByEmail(email: string): Promise<Profile | "no_account"
     .eq("id", authUser.id)
     .maybeSingle();
   if (!profile) return "no_account";
-  // Posting a debrief writes a work log, so view-only roles (no
-  // "contribute" permission) can't use it. The Owner always can.
+  // Posting a debrief writes a work log, so it needs the "add_logs"
+  // permission. The Owner always has it.
   if (profile.role !== "owner") {
-    if (!profile.role_id) return "view_only";
+    if (!profile.role_id) return "cant_log";
     const { data: grant } = await admin
       .from("role_permissions")
       .select("permission_key")
       .eq("role_id", profile.role_id)
-      .eq("permission_key", "contribute")
+      .eq("permission_key", "add_logs")
       .maybeSingle();
-    if (!grant) return "view_only";
+    if (!grant) return "cant_log";
   }
   return { id: profile.id, name: profile.name };
 }
@@ -205,9 +205,9 @@ export async function handleChatEvent(event: ChatEvent): Promise<object> {
       event.user,
     );
   }
-  if (profile === "view_only") {
+  if (profile === "cant_log") {
     return textResponse(
-      "Your dashboard role is view-only, so you can't post debriefs. Ask a Senior Team Lead if you need to log work.",
+      "Your dashboard role can't add work logs, so you can't post debriefs. Ask a Senior Team Lead.",
       event.user,
     );
   }
