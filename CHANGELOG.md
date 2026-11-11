@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-11 — Google Chat `/debrief` app
+
+- New Google Chat app: typing **`/debrief`** in a space opens a form (Project → Task → "What did you work on?"). **Post** saves the update as a work log on that task and posts it to the space.
+- Endpoint: `POST /api/google-chat`. Every request must carry a Google-signed token whose audience matches `GOOGLE_CHAT_AUDIENCE`. Anything else gets a 401.
+- The poster is identified only by Google's verified email, matched to the dashboard account with that email.
+- View-only Team Members get a private "your role is view-only" reply. Emails with no account get "Ask a Senior Team Lead to add you".
+- New env vars: `GOOGLE_CHAT_AUDIENCE` (required, the exact endpoint URL) and `GOOGLE_CHAT_ALLOWED_EMAILS` (optional comma-separated allowlist).
+- New dependency: `jose`, for verifying Google's token.
+
 ## 2026-11-10 — Task stages, calendar view, role restructure, darker dark mode
 
 ### Task stages
