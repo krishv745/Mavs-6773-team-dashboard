@@ -5,7 +5,8 @@
 - Clicking **Post** in the `/debrief` popup now saves the log and moves the popup to a **"Debrief saved ✓"** step instead of posting straight away.
 - That step has a **📷 Add photos / videos** button. It opens an upload page in the browser with **no sign-in**. The link is signed, works only for that one log, and expires after 24 hours.
 - The upload page takes photos (including straight from the camera) and videos, up to 50 MB each and 20 per debrief. Files go into the same `task-photos` bucket and `photo_urls` as dashboard log photos, so they show up everywhere logs do.
-- **Post to chat** then shares the debrief in the space, with a "📎 N photos/videos on the dashboard" line when there are any. Only the person who wrote the debrief can post it.
+- **Post to chat** then shares the debrief in the space. Only the person who wrote the debrief can post it.
+- Photos show inline in the Chat message (up to 6, then "+N more photos on the dashboard"). Chat can't play video inside a message, so each video gets a **▶ Watch video** button that opens it.
 - Google Chat popups can't hold a file field, which is why uploading happens on a separate page.
 - New public route: `/debrief/upload/[token]`. It's outside `/team`, so the sign-in middleware doesn't apply.
 

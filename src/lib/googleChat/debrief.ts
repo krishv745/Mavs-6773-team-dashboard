@@ -276,15 +276,50 @@ async function postToChat(logId: string, profile: Profile) {
     ? await admin.from("task_projects").select("name").eq("id", task.project_id).maybeSingle()
     : { data: null };
 
-  const media = log.photo_urls.length;
-  const lines = [
+  const text = [
     `📝 **${profile.name}** · ${project?.name ?? "Project"} › ${task?.title ?? log.task_title ?? "Task"}`,
     log.description ?? "",
-  ];
-  if (media > 0) lines.push(`📎 ${media} photo${media === 1 ? "" : "s"}/video${media === 1 ? "" : "s"} on the dashboard`);
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const card = mediaCard(log.photo_urls);
   // No privateMessageViewer → visible to everyone in the space; returning a
   // message from a dialog action also closes the dialog.
-  return textResponse(lines.filter(Boolean).join("\n"));
+  const message = card ? { text, cardsV2: [{ cardId: `debrief-${log.id}`, card }] } : { text };
+  return { hostAppDataAction: { chatDataAction: { createMessageAction: { message } } } };
+}
+
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm|avi|mkv|3gp|hevc)$/i;
+const MAX_IMAGES_IN_CHAT = 6;
+
+/**
+ * Photos shown inline under the debrief text; videos (which Chat can't play
+ * inside a card) as "Watch video" buttons that open the file. Long sets are
+ * capped, with a note pointing at the rest on the dashboard.
+ */
+function mediaCard(urls: string[]) {
+  if (urls.length === 0) return null;
+  const images = urls.filter((u) => !VIDEO_EXT.test(u));
+  const videos = urls.filter((u) => VIDEO_EXT.test(u));
+
+  const widgets: object[] = images
+    .slice(0, MAX_IMAGES_IN_CHAT)
+    .map((imageUrl, i) => ({ image: { imageUrl, altText: `Debrief photo ${i + 1}` } }));
+  if (videos.length > 0) {
+    widgets.push({
+      buttonList: {
+        buttons: videos.map((url, i) => ({
+          text: videos.length === 1 ? "▶ Watch video" : `▶ Watch video ${i + 1}`,
+          onClick: { openLink: { url } },
+        })),
+      },
+    });
+  }
+  const hidden = images.length - MAX_IMAGES_IN_CHAT;
+  if (hidden > 0) {
+    widgets.push({ textParagraph: { text: `+${hidden} more photo${hidden === 1 ? "" : "s"} on the dashboard` } });
+  }
+  return { sections: [{ widgets }] };
 }
 
 /** Routes one Google Chat (add-on) event to a response body. */
