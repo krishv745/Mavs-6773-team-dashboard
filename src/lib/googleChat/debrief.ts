@@ -41,6 +41,7 @@ type Profile = { id: string; name: string };
 
 const ACTION_PROJECT_CHANGED = "project";
 const ACTION_SUBMIT = "submit";
+const ACTION_OPEN = "open";
 
 function formValue(event: ChatEvent, name: string) {
   return event.commonEventObject?.formInputs?.[name]?.stringInputs?.value?.[0]?.trim() ?? "";
@@ -113,6 +114,21 @@ function dialogResponse(card: object, update = false) {
 
 function closeDialog() {
   return { action: { navigations: [{ endNavigation: { action: "CLOSE_DIALOG" } }] } };
+}
+
+/** A private message with a button that opens the debrief form, carrying any text typed after /debrief. */
+function openFormButton(user: ChatUser | undefined, update?: string) {
+  const parameters = [{ key: "action", value: ACTION_OPEN }];
+  if (update) parameters.push({ key: "update", value: update });
+  const button = {
+    text: "Open debrief form",
+    onClick: { action: { function: process.env.GOOGLE_CHAT_AUDIENCE ?? "", parameters, interaction: "OPEN_DIALOG" } },
+  };
+  const message = {
+    cardsV2: [{ cardId: "debrief", card: { sections: [{ widgets: [{ buttonList: { buttons: [button] } }] }] } }],
+    ...(user?.name ? { privateMessageViewer: { name: user.name } } : {}),
+  };
+  return { hostAppDataAction: { chatDataAction: { createMessageAction: { message } } } };
 }
 
 function messageCard(text: string) {
@@ -236,8 +252,16 @@ export async function handleChatEvent(event: ChatEvent): Promise<object> {
   }
   if (action === ACTION_SUBMIT) return submit(event, profile);
 
+  if (action === ACTION_OPEN) {
+    return renderForm({ update: event.commonEventObject?.parameters?.update });
+  }
+
   if (chat.appCommandPayload) {
-    return renderForm({ update: chat.appCommandPayload.message?.argumentText?.trim() });
+    const update = chat.appCommandPayload.message?.argumentText?.trim();
+    if (chat.appCommandPayload.isDialogEvent) return renderForm({ update });
+    // The command isn't set to "Open a dialog" in the Chat API config, so
+    // Chat wants a message back: send a button that opens the form.
+    return openFormButton(chat.user, update);
   }
 
   return textResponse("Type /debrief to post an update and log it on the dashboard.", chat.user);
