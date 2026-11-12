@@ -1,6 +1,7 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { uploadPageUrl } from "@/lib/googleChat/uploadLink";
 
 /**
  * Google Chat "/debrief" app, built as a Google Workspace add-on (the event
@@ -42,14 +43,16 @@ type Profile = { id: string; name: string };
 const ACTION_PROJECT_CHANGED = "project";
 const ACTION_SUBMIT = "submit";
 const ACTION_OPEN = "open";
+const ACTION_POST = "post";
 
 function formValue(event: ChatEvent, name: string) {
   return event.commonEventObject?.formInputs?.[name]?.stringInputs?.value?.[0]?.trim() ?? "";
 }
 
 /** Add-on HTTP actions call a URL, not a function name; the endpoint routes on the "action" parameter. */
-function endpointAction(action: string) {
-  return { function: process.env.GOOGLE_CHAT_AUDIENCE ?? "", parameters: [{ key: "action", value: action }] };
+function endpointAction(action: string, extra: Record<string, string> = {}) {
+  const parameters = Object.entries({ action, ...extra }).map(([key, value]) => ({ key, value }));
+  return { function: process.env.GOOGLE_CHAT_AUDIENCE ?? "", parameters };
 }
 
 /** Comma-separated GOOGLE_CHAT_ALLOWED_EMAILS limits who can use the app; unset = anyone with a dashboard account. */
@@ -203,21 +206,85 @@ async function submit(event: ChatEvent, profile: Profile) {
     return renderForm({ projectId, update, error: "That task isn't open anymore — pick another." }, true);
   }
 
-  const { error } = await admin.from("task_logs").insert({
-    task_id: task.id,
-    user_id: profile.id,
-    description: update,
-  });
-  if (error) return renderForm({ projectId, taskId, update, error: "Couldn't save to the dashboard. Try again." }, true);
+  const { data: log, error } = await admin
+    .from("task_logs")
+    .insert({ task_id: task.id, user_id: profile.id, description: update })
+    .select("id")
+    .single();
+  if (error || !log) {
+    return renderForm({ projectId, taskId, update, error: "Couldn't save to the dashboard. Try again." }, true);
+  }
 
   revalidatePath("/team/projects");
   revalidatePath("/team/projects/my-tasks");
 
-  const { data: project } = await admin.from("task_projects").select("name").eq("id", projectId).maybeSingle();
-  const projectName = project?.name ?? "Project";
+  return mediaStep(log.id);
+}
+
+/**
+ * Step 2 of the popup. Chat dialogs can't take file uploads, so the
+ * "Add photos / videos" button opens a sign-in-free upload page tied to this
+ * log; "Post to chat" then shares the debrief (with the media count).
+ */
+function mediaStep(logId: string) {
+  return dialogResponse(
+    {
+      header: { title: "Debrief saved ✓", subtitle: "Add photos or videos, then post it to the chat" },
+      sections: [
+        {
+          widgets: [
+            {
+              textParagraph: {
+                text:
+                  "Your update is logged on the dashboard. To attach photos or videos, tap the button below — " +
+                  "it opens in your browser, no sign-in needed. Come back here and tap <b>Post to chat</b> when you're done.",
+              },
+            },
+            {
+              buttonList: {
+                buttons: [{ text: "📷 Add photos / videos", onClick: { openLink: { url: uploadPageUrl(logId) } } }],
+              },
+            },
+          ],
+        },
+      ],
+      fixedFooter: {
+        primaryButton: {
+          text: "Post to chat",
+          onClick: { action: endpointAction(ACTION_POST, { log: logId }) },
+        },
+      },
+    },
+    true,
+  );
+}
+
+/** Posts a saved debrief to the space. Only the person who wrote it can post it. */
+async function postToChat(logId: string, profile: Profile) {
+  const admin = createAdminClient();
+  const { data: log } = await admin
+    .from("task_logs")
+    .select("id, user_id, description, task_id, task_title, photo_urls")
+    .eq("id", logId)
+    .maybeSingle();
+  if (!log || log.user_id !== profile.id) return closeDialog();
+
+  const { data: task } = log.task_id
+    ? await admin.from("tasks").select("title, project_id").eq("id", log.task_id).maybeSingle()
+    : { data: null };
+  const { data: project } = task?.project_id
+    ? await admin.from("task_projects").select("name").eq("id", task.project_id).maybeSingle()
+    : { data: null };
+
+  const media = log.photo_urls.length;
+  const lines = [
+    `📝 **${profile.name}** · ${project?.name ?? "Project"} › ${task?.title ?? log.task_title ?? "Task"}`,
+    log.description ?? "",
+  ];
+  if (media > 0) lines.push(`📎 ${media} photo${media === 1 ? "" : "s"}/video${media === 1 ? "" : "s"} on the dashboard`);
   // No privateMessageViewer → visible to everyone in the space; returning a
-  // message from a dialog submit also closes the dialog.
-  return textResponse(`📝 **${profile.name}** · ${projectName} › ${task.title}\n${update}`);
+  // message from a dialog action also closes the dialog.
+  return textResponse(lines.filter(Boolean).join("\n"));
 }
 
 /** Routes one Google Chat (add-on) event to a response body. */
@@ -251,6 +318,7 @@ export async function handleChatEvent(event: ChatEvent): Promise<object> {
     return renderForm({ projectId: formValue(event, "project"), update: formValue(event, "update") }, true);
   }
   if (action === ACTION_SUBMIT) return submit(event, profile);
+  if (action === ACTION_POST) return postToChat(event.commonEventObject?.parameters?.log ?? "", profile);
 
   if (action === ACTION_OPEN) {
     return renderForm({ update: event.commonEventObject?.parameters?.update });
