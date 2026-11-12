@@ -3,38 +3,52 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Google Chat "/debrief" app (classic Chat API interaction events, not the
- * Workspace add-on format). The slash command is configured to open a dialog:
+ * Google Chat "/debrief" app, built as a Google Workspace add-on (the event
+ * and response format Google requires for new Chat apps). The slash command
+ * is configured to open a dialog:
  *
- *   /debrief            → REQUEST_DIALOG  → project / task / update form
- *   change the project  → debrief_project → same form, task list for that project
- *   click "Post"        → debrief_submit  → task_logs row + a message posted to
- *                                            the whole space, dialog closes
+ *   /debrief            → appCommandPayload, REQUEST_DIALOG → project / task / update form
+ *   change the project  → action=project → same form, task list for that project
+ *   click "Post"        → action=submit  → task_logs row + a message posted to
+ *                                           the whole space, dialog closes
  *
- * Who's posting comes only from Google's signed event (event.user.email),
+ * Who's posting comes only from Google's signed event (chat.user.email),
  * matched against the dashboard account with that email — never from
  * anything in the form.
  */
 
 type FormInputs = Record<string, { stringInputs?: { value?: string[] } }>;
-
-export type ChatEvent = {
-  type?: string;
+type ChatUser = { name?: string; email?: string; displayName?: string };
+type DialogFields = {
   isDialogEvent?: boolean;
   dialogEventType?: "REQUEST_DIALOG" | "SUBMIT_DIALOG" | "CANCEL_DIALOG";
-  user?: { email?: string; displayName?: string };
-  space?: { name?: string };
-  message?: { argumentText?: string; slashCommand?: { commandId?: string } };
-  common?: { invokedFunction?: string; formInputs?: FormInputs };
+  message?: { argumentText?: string };
+};
+
+export type ChatEvent = {
+  commonEventObject?: { parameters?: Record<string, string>; formInputs?: FormInputs };
+  chat?: {
+    user?: ChatUser;
+    addedToSpacePayload?: object;
+    messagePayload?: { message?: { argumentText?: string } };
+    appCommandPayload?: DialogFields;
+    buttonClickedPayload?: DialogFields;
+    widgetUpdatedPayload?: DialogFields;
+  };
 };
 
 type Profile = { id: string; name: string };
 
-const FN_PROJECT_CHANGED = "debrief_project";
-const FN_SUBMIT = "debrief_submit";
+const ACTION_PROJECT_CHANGED = "project";
+const ACTION_SUBMIT = "submit";
 
 function formValue(event: ChatEvent, name: string) {
-  return event.common?.formInputs?.[name]?.stringInputs?.value?.[0]?.trim() ?? "";
+  return event.commonEventObject?.formInputs?.[name]?.stringInputs?.value?.[0]?.trim() ?? "";
+}
+
+/** Add-on HTTP actions call a URL, not a function name; the endpoint routes on the "action" parameter. */
+function endpointAction(action: string) {
+  return { function: process.env.GOOGLE_CHAT_AUDIENCE ?? "", parameters: [{ key: "action", value: action }] };
 }
 
 /** Comma-separated GOOGLE_CHAT_ALLOWED_EMAILS limits who can use the app; unset = anyone with a dashboard account. */
@@ -87,24 +101,31 @@ async function loadOpenTasks() {
     .filter((p) => p.tasks.length > 0);
 }
 
-function textResponse(text: string, privateTo?: ChatEvent["user"]) {
-  return { text, ...(privateTo ? { privateMessageViewer: privateTo } : {}) };
+function textResponse(text: string, privateTo?: ChatUser) {
+  const message = { text, ...(privateTo?.name ? { privateMessageViewer: { name: privateTo.name } } : {}) };
+  return { hostAppDataAction: { chatDataAction: { createMessageAction: { message } } } };
 }
 
-function dialogResponse(body: object) {
-  return { actionResponse: { type: "DIALOG", dialogAction: { dialog: { body } } } };
+/** Opens a dialog (pushCard) or replaces the open one (updateCard). */
+function dialogResponse(card: object, update = false) {
+  return { action: { navigations: [update ? { updateCard: card } : { pushCard: card }] } };
 }
 
 function closeDialog() {
-  return { actionResponse: { type: "DIALOG", dialogAction: { actionStatus: { statusCode: "OK" } } } };
+  return { action: { navigations: [{ endNavigation: { action: "CLOSE_DIALOG" } }] } };
 }
 
-async function renderForm(opts: { projectId?: string; taskId?: string; update?: string; error?: string }) {
+function messageCard(text: string) {
+  return { sections: [{ widgets: [{ textParagraph: { text } }] }] };
+}
+
+async function renderForm(
+  opts: { projectId?: string; taskId?: string; update?: string; error?: string },
+  update = false,
+) {
   const projects = await loadOpenTasks();
   if (projects.length === 0) {
-    return dialogResponse({
-      sections: [{ widgets: [{ textParagraph: { text: "There are no active tasks on the dashboard to log against yet." } }] }],
-    });
+    return dialogResponse(messageCard("There are no active tasks on the dashboard to log against yet."), update);
   }
 
   const project = projects.find((p) => p.id === opts.projectId) ?? projects[0];
@@ -119,7 +140,7 @@ async function renderForm(opts: { projectId?: string; taskId?: string; update?: 
         label: "Project",
         type: "DROPDOWN",
         items: projects.map((p) => ({ text: p.name, value: p.id, selected: p.id === project.id })),
-        onChangeAction: { function: FN_PROJECT_CHANGED },
+        onChangeAction: endpointAction(ACTION_PROJECT_CHANGED),
       },
     },
     {
@@ -140,18 +161,21 @@ async function renderForm(opts: { projectId?: string; taskId?: string; update?: 
     },
   );
 
-  return dialogResponse({
-    header: { title: "Debrief", subtitle: "Posts to this chat and logs it on the Mavs dashboard" },
-    sections: [{ widgets }],
-    fixedFooter: { primaryButton: { text: "Post", onClick: { action: { function: FN_SUBMIT } } } },
-  });
+  return dialogResponse(
+    {
+      header: { title: "Debrief", subtitle: "Posts to this chat and logs it on the Mavs dashboard" },
+      sections: [{ widgets }],
+      fixedFooter: { primaryButton: { text: "Post", onClick: { action: endpointAction(ACTION_SUBMIT) } } },
+    },
+    update,
+  );
 }
 
 async function submit(event: ChatEvent, profile: Profile) {
   const projectId = formValue(event, "project");
   const taskId = formValue(event, "task");
   const update = formValue(event, "update");
-  if (!update) return renderForm({ projectId, taskId, error: "Write what you worked on first." });
+  if (!update) return renderForm({ projectId, taskId, error: "Write what you worked on first." }, true);
 
   const admin = createAdminClient();
   const { data: task } = await admin
@@ -160,7 +184,7 @@ async function submit(event: ChatEvent, profile: Profile) {
     .eq("id", taskId)
     .maybeSingle();
   if (!task || task.status !== "active" || task.project_id !== projectId) {
-    return renderForm({ projectId, update, error: "That task isn't open anymore — pick another." });
+    return renderForm({ projectId, update, error: "That task isn't open anymore — pick another." }, true);
   }
 
   const { error } = await admin.from("task_logs").insert({
@@ -168,7 +192,7 @@ async function submit(event: ChatEvent, profile: Profile) {
     user_id: profile.id,
     description: update,
   });
-  if (error) return renderForm({ projectId, taskId, update, error: "Couldn't save to the dashboard. Try again." });
+  if (error) return renderForm({ projectId, taskId, update, error: "Couldn't save to the dashboard. Try again." }, true);
 
   revalidatePath("/team/projects");
   revalidatePath("/team/projects/my-tasks");
@@ -177,53 +201,44 @@ async function submit(event: ChatEvent, profile: Profile) {
   const projectName = project?.name ?? "Project";
   // No privateMessageViewer → visible to everyone in the space; returning a
   // message from a dialog submit also closes the dialog.
-  return {
-    actionResponse: { type: "NEW_MESSAGE" },
-    text: `📝 *${profile.name}* · ${projectName} › ${task.title}\n${update}`,
-  };
+  return textResponse(`📝 **${profile.name}** · ${projectName} › ${task.title}\n${update}`);
 }
 
-/** Routes one Google Chat event to a response body. */
+/** Routes one Google Chat (add-on) event to a response body. */
 export async function handleChatEvent(event: ChatEvent): Promise<object> {
-  if (event.type === "ADDED_TO_SPACE") {
+  const chat = event.chat ?? {};
+  if (chat.addedToSpacePayload) {
     return textResponse("Hi! Type /debrief to post an update here and log it on the Mavs dashboard.");
   }
 
-  if (event.dialogEventType === "CANCEL_DIALOG") return closeDialog();
+  const dialog = chat.appCommandPayload ?? chat.buttonClickedPayload ?? chat.widgetUpdatedPayload;
+  const action = event.commonEventObject?.parameters?.action;
+  const inDialog = Boolean(dialog?.isDialogEvent || action);
+  if (dialog?.dialogEventType === "CANCEL_DIALOG") return closeDialog();
 
-  const email = event.user?.email?.toLowerCase() ?? "";
-  if (!email || !isAllowed(email)) {
-    return event.isDialogEvent
-      ? closeDialog()
-      : textResponse("Debrief isn't turned on for your account yet.", event.user);
-  }
+  // Inside a dialog, problems are shown in the dialog; otherwise as a private reply.
+  const refuse = (text: string) =>
+    inDialog ? dialogResponse(messageCard(text), Boolean(action)) : textResponse(text, chat.user);
+
+  const email = chat.user?.email?.toLowerCase() ?? "";
+  if (!email || !isAllowed(email)) return refuse("Debrief isn't turned on for your account yet.");
 
   const profile = await findProfileByEmail(email);
   if (profile === "no_account") {
-    return textResponse(
-      `There's no Mavs dashboard account for ${email}. Ask a Senior Team Lead to add you.`,
-      event.user,
-    );
+    return refuse(`There's no Mavs dashboard account for ${email}. Ask a Senior Team Lead to add you.`);
   }
   if (profile === "cant_log") {
-    return textResponse(
-      "Your dashboard role can't add work logs, so you can't post debriefs. Ask a Senior Team Lead.",
-      event.user,
-    );
+    return refuse("Your dashboard role can't add work logs, so you can't post debriefs. Ask a Senior Team Lead.");
   }
 
-  if (event.isDialogEvent && event.dialogEventType === "REQUEST_DIALOG") {
-    return renderForm({ update: event.message?.argumentText?.trim() });
+  if (action === ACTION_PROJECT_CHANGED) {
+    return renderForm({ projectId: formValue(event, "project"), update: formValue(event, "update") }, true);
+  }
+  if (action === ACTION_SUBMIT) return submit(event, profile);
+
+  if (chat.appCommandPayload) {
+    return renderForm({ update: chat.appCommandPayload.message?.argumentText?.trim() });
   }
 
-  if (event.common?.invokedFunction === FN_PROJECT_CHANGED) {
-    return renderForm({ projectId: formValue(event, "project"), update: formValue(event, "update") });
-  }
-
-  if (event.common?.invokedFunction === FN_SUBMIT) return submit(event, profile);
-
-  if (event.type === "MESSAGE") {
-    return textResponse("Type /debrief to post an update and log it on the dashboard.", event.user);
-  }
-  return {};
+  return textResponse("Type /debrief to post an update and log it on the dashboard.", chat.user);
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-11 — Google Chat `/debrief` works as a Workspace add-on
+
+- Google now builds every new Chat app as a **Workspace add-on**, and the option can't be turned off. `/debrief` was written for the older format, so every request got a 401 ("not responding").
+- Token check: requests must now be signed by the add-on's own service account (`service-<project number>@gcp-sa-gsuiteaddons…`) instead of `chat@system.gserviceaccount.com`.
+- The handler now reads add-on events (`chat.appCommandPayload`, `commonEventObject.formInputs`) and replies in the add-on format (`pushCard`/`updateCard` for the dialog, `createMessageAction` for the posted debrief).
+- Problems like having no account or a role that can't log now appear inside the dialog instead of as a separate message.
+- New required env var: `GOOGLE_CHAT_PROJECT_NUMBER`, the "Project number (App ID)" from Chat API → Configuration.
+- Rejected requests now write a reason to the Vercel logs.
+
 ## 2026-11-11 — Team Members can add work logs
 
 - New **"Add work logs"** permission (`add_logs`), granted to every role. It's the **only** permission the Team Member role has.
